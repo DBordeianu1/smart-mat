@@ -1,15 +1,20 @@
-// Paw Unit — Prototype 2
-// ESP32 DevKit V1
+// Paw Unit Mat – ESP32 Prototype 2
 //
-// Hardware:
-// - WS2812/NeoPixel strip on GPIO 25
-// - Speaker amplifier input on GPIO 26
-// - Optional treat mechanism on GPIO 27
-// - One FSR pressure sensor on GPIO 34
+// Pressure sensors:
+//   Sensor 1 -> GPIO 34 -> Yellow
+//   Sensor 2 -> GPIO 35 -> Red
+//   Sensor 3 -> GPIO 33 -> Green
+//   Sensor 4 -> GPIO 32 -> Blue
 //
-// Required Arduino libraries:
-// - WebSockets by Markus Sattler
-// - Adafruit NeoPixel
+// Outputs:
+//   WS2812 LED strip DIN -> GPIO 18
+//   Speaker amplifier IN -> GPIO 25
+//   Treat mechanism      -> GPIO 27
+//
+// secrets.h must contain:
+//
+// const char *WIFI_SSID = "your wifi name";
+// const char *WIFI_PASSWORD = "your wifi password";
 
 #include <WiFi.h>
 #include <ESPmDNS.h>
@@ -18,51 +23,35 @@
 #include "secrets.h"
 
 // --------------------------------------------------
-// Device configuration
+// Configuration
 // --------------------------------------------------
 
 const char MAT_ID[] = "PU-2048";
-const char MAT_HOSTNAME[] = "pawunit";
+const char HOSTNAME[] = "pawunit";
 
-const uint16_t WS_PORT = 8080;
+const int LED_PIN = 18;
 
-// --------------------------------------------------
-// Pin configuration
-// --------------------------------------------------
+// Keep this equal to the number that currently lights
+// your entire LED strip.
+const int LED_COUNT = 300;
 
-const int LED_PIN = 25;
-const int SPEAKER_PIN = 26;
+const int SPEAKER_PIN = 25;
 const int TREAT_PIN = 27;
 
-const int FSR_PIN = 34;
+const int SENSOR_COUNT = 4;
 
-// Update this if your strip has a different number of LEDs.
-const int LED_COUNT = 8;
+const int PRESSURE_PINS[SENSOR_COUNT] = {
+  34, // Sensor 1
+  35, // Sensor 2
+  33, // Sensor 3
+  32  // Sensor 4
+};
 
-// --------------------------------------------------
-// Pressure configuration
-// --------------------------------------------------
+// Change these only if the Serial Monitor readings require it.
+const int PRESSURE_ON_THRESHOLD = 900;
+const int PRESSURE_OFF_THRESHOLD = 600;
 
-// These values will probably need calibration.
-//
-// Wiring assumption:
-//
-// 3.3V → FSR → analog pin → 10kΩ resistor → GND
-//
-// With this wiring, pressure should increase the analog reading.
-
-const int PRESS_ON_THRESHOLD = 900;
-const int PRESS_OFF_THRESHOLD = 600;
-
-const unsigned long PRESS_DEBOUNCE_MS = 100;
-const unsigned long PRESSURE_PRINT_INTERVAL_MS = 1000;
-
-// Set to false after calibrating the sensors.
-const bool PRINT_PRESSURE_VALUES = true;
-
-// --------------------------------------------------
-// LED strip
-// --------------------------------------------------
+const unsigned long PRESSURE_DEBOUNCE_MS = 80;
 
 Adafruit_NeoPixel strip(
   LED_COUNT,
@@ -70,573 +59,633 @@ Adafruit_NeoPixel strip(
   NEO_GRB + NEO_KHZ800
 );
 
-// --------------------------------------------------
-// WebSocket
-// --------------------------------------------------
-
-WebSocketsServer webSocket(WS_PORT);
+WebSocketsServer webSocket(8080);
 
 // --------------------------------------------------
-// Mat state
+// State
 // --------------------------------------------------
 
 bool lightsOn = false;
 bool calmOn = false;
-bool playing = false;
 
-int volume = 60;
 int brightness = 80;
 
-unsigned long lastPadMs = 0;
-unsigned long lastWifiAttemptMs = 0;
-unsigned long lastPressurePrintMs = 0;
+// Volume remains unchanged.
+int volume = 60;
+
+bool sensorPressed[SENSOR_COUNT] = {
+  false,
+  false,
+  false,
+  false
+};
+
+bool sensorCandidate[SENSOR_COUNT] = {
+  false,
+  false,
+  false,
+  false
+};
+
+unsigned long sensorCandidateSince[SENSOR_COUNT] = {
+  0,
+  0,
+  0,
+  0
+};
+
+// 0 = no sensor
+// 1–4 = active pressure sensor
+int activeSensor = 0;
 
 // --------------------------------------------------
-// Function declarations
+// Speaker
 // --------------------------------------------------
 
-bool connectWifi();
-void startMdns();
+void stopSpeaker() {
+  // Keep the DAC silent while no sound is playing.
+  // This helps reduce idle static from the amplifier.
+  dacWrite(SPEAKER_PIN, 0);
+}
 
-void applyLights();
-void updatePressureSensor();
+void playToneWithVolume(int frequency, int durationMs) {
+  if (volume <= 0 || frequency <= 0 || durationMs <= 0) {
+    stopSpeaker();
+    return;
+  }
 
-void sendLine(uint8_t client, const String &line);
-void reportStatus(uint8_t client);
-void handleCommand(String command);
+  int outputLevel = map(volume, 0, 100, 0, 255);
+  outputLevel = constrain(outputLevel, 0, 255);
 
-void onWifiEvent(
-  WiFiEvent_t event,
-  WiFiEventInfo_t info
-);
+  unsigned long halfPeriodUs = 500000UL / frequency;
+  unsigned long startTime = millis();
 
-void onWebSocketEvent(
-  uint8_t client,
-  WStype_t type,
-  uint8_t *payload,
-  size_t length
-);
+  while (millis() - startTime < (unsigned long)durationMs) {
+    dacWrite(SPEAKER_PIN, outputLevel);
+    delayMicroseconds(halfPeriodUs);
+
+    dacWrite(SPEAKER_PIN, 0);
+    delayMicroseconds(halfPeriodUs);
+  }
+
+  stopSpeaker();
+}
+
+// Sensor 1: gentle rising chime.
+void playSensor1Sound() {
+  playToneWithVolume(600, 120);
+  delay(40);
+  playToneWithVolume(800, 160);
+}
+
+// Sensor 2: friendly double beep.
+void playSensor2Sound() {
+  playToneWithVolume(700, 140);
+  delay(90);
+  playToneWithVolume(700, 140);
+}
+
+// Sensor 3: low-high-low pattern.
+void playSensor3Sound() {
+  playToneWithVolume(550, 100);
+  delay(40);
+  playToneWithVolume(750, 130);
+  delay(40);
+  playToneWithVolume(550, 100);
+}
+
+// Sensor 4: three short beeps.
+void playSensor4Sound() {
+  playToneWithVolume(650, 90);
+  delay(60);
+  playToneWithVolume(650, 90);
+  delay(60);
+  playToneWithVolume(650, 90);
+}
+
+void playSensorSound(int sensorNumber) {
+  switch (sensorNumber) {
+    case 1:
+      playSensor1Sound();
+      break;
+
+    case 2:
+      playSensor2Sound();
+      break;
+
+    case 3:
+      playSensor3Sound();
+      break;
+
+    case 4:
+      playSensor4Sound();
+      break;
+  }
+}
 
 // --------------------------------------------------
-// Wi-Fi event handler
+// LEDs
 // --------------------------------------------------
 
-void onWifiEvent(
-  WiFiEvent_t event,
-  WiFiEventInfo_t info
+void setStripColor(
+  uint8_t red,
+  uint8_t green,
+  uint8_t blue
 ) {
-  if (event == ARDUINO_EVENT_WIFI_STA_CONNECTED) {
-    Serial.println();
-    Serial.println(
-      "ESP32 connected to the Wi-Fi access point."
-    );
-  }
+  int adjustedRed =
+    (red * brightness) / 100;
 
-  if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
-    Serial.println(
-      "ESP32 received an IP address."
-    );
-  }
+  int adjustedGreen =
+    (green * brightness) / 100;
 
-  if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
-    Serial.printf(
-      "Wi-Fi disconnected. Reason code: %d\n",
-      info.wifi_sta_disconnected.reason
-    );
-  }
-}
+  int adjustedBlue =
+    (blue * brightness) / 100;
 
-// --------------------------------------------------
-// mDNS
-// --------------------------------------------------
-
-void startMdns() {
-  MDNS.end();
-
-  if (MDNS.begin(MAT_HOSTNAME)) {
-    MDNS.addService(
-      "ws",
-      "tcp",
-      WS_PORT
-    );
-
-    Serial.printf(
-      "Mat hostname: %s.local\n",
-      MAT_HOSTNAME
-    );
-  } else {
-    Serial.println(
-      "mDNS failed. Use the IP address as a fallback."
-    );
-  }
-}
-
-// --------------------------------------------------
-// Wi-Fi connection
-// --------------------------------------------------
-
-bool connectWifi() {
-  Serial.printf(
-    "Connecting to \"%s\"",
-    WIFI_SSID
-  );
-
-  WiFi.disconnect();
-  delay(300);
-
-  WiFi.mode(WIFI_STA);
-  WiFi.setSleep(false);
-
-  WiFi.begin(
-    WIFI_SSID,
-    WIFI_PASSWORD
-  );
-
-  unsigned long started = millis();
-
-  while (
-    WiFi.status() != WL_CONNECTED &&
-    millis() - started < 30000
-  ) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  Serial.println();
-
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println(
-      "Wi-Fi connection failed. Retrying later."
-    );
-
-    return false;
-  }
-
-  Serial.println(
-    "Wi-Fi connection successful!"
-  );
-
-  startMdns();
-
-  Serial.printf(
-    "SSID: %s\n",
-    WiFi.SSID().c_str()
-  );
-
-  Serial.printf(
-    "Signal: %d dBm\n",
-    WiFi.RSSI()
-  );
-
-  Serial.printf(
-    "IP address: %s\n",
-    WiFi.localIP().toString().c_str()
-  );
-
-  Serial.printf(
-    "WebSocket: ws://%s:%u\n",
-    WiFi.localIP().toString().c_str(),
-    WS_PORT
-  );
-
-  Serial.printf(
-    "Permanent WebSocket name: ws://%s.local:%u\n",
-    MAT_HOSTNAME,
-    WS_PORT
-  );
-
-  return true;
-}
-
-// --------------------------------------------------
-// LED functions
-// --------------------------------------------------
-
-void applyLights() {
-  int level = 0;
-
-  if (lightsOn) {
-    level = brightness;
-  }
-
-  if (calmOn) {
-    level = brightness / 3;
-  }
-
-  uint8_t outputLevel = map(
-    level,
-    0,
-    100,
-    0,
-    255
+  uint32_t color = strip.Color(
+    adjustedRed,
+    adjustedGreen,
+    adjustedBlue
   );
 
   for (int i = 0; i < LED_COUNT; i++) {
-    uint32_t color;
-
-    if (calmOn) {
-      // Dim blue calm-mode color.
-      color = strip.Color(
-        0,
-        outputLevel / 3,
-        outputLevel
-      );
-    } else {
-      // Warm yellow normal-light color.
-      color = strip.Color(
-        outputLevel,
-        outputLevel / 2,
-        0
-      );
-    }
-
     strip.setPixelColor(i, color);
   }
 
   strip.show();
 }
 
-// --------------------------------------------------
-// Pressure sensor
-// --------------------------------------------------
-
-void updatePressureSensor() {
-  int pressure = analogRead(FSR_PIN);
-
-  if (
-    PRINT_PRESSURE_VALUES &&
-    millis() - lastPressurePrintMs >=
-      PRESSURE_PRINT_INTERVAL_MS
-  ) {
-    lastPressurePrintMs = millis();
-    Serial.printf("FSR GPIO 34: %d\n", pressure);
-  }
-
-  bool nextPlaying = playing;
-
-  if (
-    !playing &&
-    pressure >= PRESS_ON_THRESHOLD
-  ) {
-    nextPlaying = true;
-  }
-
-  if (
-    playing &&
-    pressure <= PRESS_OFF_THRESHOLD
-  ) {
-    nextPlaying = false;
-  }
-
-  if (
-    nextPlaying != playing &&
-    millis() - lastPadMs >= PRESS_DEBOUNCE_MS
-  ) {
-    lastPadMs = millis();
-    playing = nextPlaying;
-
-    Serial.printf(
-      "Pressure state: %s\n",
-      playing ? "ON MAT" : "OFF MAT"
-    );
-
-    sendLine(
-      255,
-      "PLAY:" + String(playing ? 1 : 0)
-    );
-  }
+void turnLightsOff() {
+  strip.clear();
+  strip.show();
 }
 
-// --------------------------------------------------
-// WebSocket communication
-// --------------------------------------------------
+void showNormalLights() {
+  if (!lightsOn && !calmOn) {
+    turnLightsOff();
+    return;
+  }
 
-void sendLine(
-  uint8_t client,
-  const String &line
-) {
-  String message = line + "\n";
-
-  if (client == 255) {
-    webSocket.broadcastTXT(message);
+  if (calmOn) {
+    // Soft warm light.
+    setStripColor(80, 45, 5);
   } else {
-    webSocket.sendTXT(
-      client,
-      message
-    );
+    // Normal warm-yellow light.
+    setStripColor(255, 170, 25);
+  }
+}
+
+void showSensorColor(int sensorNumber) {
+  switch (sensorNumber) {
+    case 1:
+      // Sensor 1: yellow.
+      setStripColor(255, 170, 20);
+      break;
+
+    case 2:
+      // Sensor 2: red.
+      setStripColor(255, 0, 0);
+      break;
+
+    case 3:
+      // Sensor 3: green.
+      setStripColor(0, 255, 40);
+      break;
+
+    case 4:
+      // Sensor 4: blue.
+      setStripColor(0, 70, 255);
+      break;
+
+    default:
+      showNormalLights();
+      break;
+  }
+}
+
+// --------------------------------------------------
+// Pressure sensors
+// --------------------------------------------------
+
+bool updateDebouncedSensor(
+  int rawValue,
+  bool currentState,
+  bool &candidateState,
+  unsigned long &candidateSince
+) {
+  bool requestedState = currentState;
+
+  if (
+    !currentState &&
+    rawValue >= PRESSURE_ON_THRESHOLD
+  ) {
+    requestedState = true;
+  } else if (
+    currentState &&
+    rawValue <= PRESSURE_OFF_THRESHOLD
+  ) {
+    requestedState = false;
   }
 
-  Serial.println(line);
+  if (requestedState != candidateState) {
+    candidateState = requestedState;
+    candidateSince = millis();
+  }
+
+  if (
+    candidateState != currentState &&
+    millis() - candidateSince >= PRESSURE_DEBOUNCE_MS
+  ) {
+    return candidateState;
+  }
+
+  return currentState;
 }
 
-void reportStatus(uint8_t client) {
-  sendLine(
-    client,
-    "ID:" + String(MAT_ID)
+void reportPressureState() {
+  for (int i = 0; i < SENSOR_COUNT; i++) {
+    String message =
+      String("PAD") +
+      String(i + 1) +
+      ":" +
+      String(sensorPressed[i] ? 1 : 0);
+
+    webSocket.broadcastTXT(message);
+  }
+
+  webSocket.broadcastTXT(
+    String("PLAY:") +
+    String(activeSensor != 0 ? 1 : 0)
   );
 
-  sendLine(
-    client,
-    "VOL:" + String(volume)
+  webSocket.broadcastTXT(
+    String("ACTIVE:") +
+    String(activeSensor)
   );
+}
 
-  sendLine(
-    client,
-    "PLAY:" + String(playing ? 1 : 0)
-  );
+void printSensorChange(
+  int sensorIndex,
+  int rawValue
+) {
+  Serial.print("Sensor ");
+  Serial.print(sensorIndex + 1);
+  Serial.print(" on GPIO ");
+  Serial.print(PRESSURE_PINS[sensorIndex]);
+  Serial.print(": ");
+  Serial.print(rawValue);
+
+  if (sensorPressed[sensorIndex]) {
+    Serial.println(" PRESSED");
+  } else {
+    Serial.println(" released");
+  }
+}
+
+void updatePressureSensors() {
+  bool stateChanged = false;
+
+  for (int i = 0; i < SENSOR_COUNT; i++) {
+    int rawValue = analogRead(PRESSURE_PINS[i]);
+    bool oldState = sensorPressed[i];
+
+    sensorPressed[i] = updateDebouncedSensor(
+      rawValue,
+      sensorPressed[i],
+      sensorCandidate[i],
+      sensorCandidateSince[i]
+    );
+
+    if (sensorPressed[i] != oldState) {
+      stateChanged = true;
+      printSensorChange(i, rawValue);
+    }
+  }
+
+  if (!stateChanged) {
+    return;
+  }
+
+  int newActiveSensor = 0;
+
+  // Check from sensor 4 down to sensor 1.
+  // The highest-numbered pressed sensor has priority.
+  for (int i = SENSOR_COUNT - 1; i >= 0; i--) {
+    if (sensorPressed[i]) {
+      newActiveSensor = i + 1;
+      break;
+    }
+  }
+
+  bool activeSensorChanged =
+    newActiveSensor != activeSensor;
+
+  activeSensor = newActiveSensor;
+
+  if (activeSensorChanged) {
+    if (activeSensor == 0) {
+      Serial.println("All pressure sensors released.");
+      showNormalLights();
+    } else {
+      Serial.print("Active pressure sensor: ");
+      Serial.println(activeSensor);
+
+      showSensorColor(activeSensor);
+      playSensorSound(activeSensor);
+    }
+  }
+
+  reportPressureState();
 }
 
 // --------------------------------------------------
-// App commands
+// Treat mechanism
 // --------------------------------------------------
 
-void handleCommand(String command) {
+void releaseTreat() {
+  digitalWrite(TREAT_PIN, HIGH);
+  delay(300);
+  digitalWrite(TREAT_PIN, LOW);
+}
+
+// --------------------------------------------------
+// WebSocket status
+// --------------------------------------------------
+
+void reportStatus(uint8_t clientNumber) {
+  webSocket.sendTXT(
+    clientNumber,
+    String("ID:") + MAT_ID
+  );
+
+  webSocket.sendTXT(
+    clientNumber,
+    String("VOL:") + String(volume)
+  );
+
+  webSocket.sendTXT(
+    clientNumber,
+    String("PLAY:") +
+    String(activeSensor != 0 ? 1 : 0)
+  );
+
+  webSocket.sendTXT(
+    clientNumber,
+    String("ACTIVE:") +
+    String(activeSensor)
+  );
+
+  for (int i = 0; i < SENSOR_COUNT; i++) {
+    String message =
+      String("PAD") +
+      String(i + 1) +
+      ":" +
+      String(sensorPressed[i] ? 1 : 0);
+
+    webSocket.sendTXT(clientNumber, message);
+  }
+}
+
+// --------------------------------------------------
+// WebSocket commands
+// --------------------------------------------------
+
+void handleCommand(
+  uint8_t clientNumber,
+  String command
+) {
   command.trim();
 
   if (command.length() == 0) {
     return;
   }
 
-  char commandType = command[0];
+  Serial.print("WebSocket command: ");
+  Serial.println(command);
 
-  int value = constrain(
-    command.substring(1).toInt(),
-    0,
-    100
-  );
+  char commandType = command.charAt(0);
 
   switch (commandType) {
-    // Lights
     case 'L':
       lightsOn =
         command.length() > 1 &&
-        command[1] == '1';
+        command.charAt(1) == '1';
 
-      applyLights();
+      if (activeSensor == 0) {
+        showNormalLights();
+      }
       break;
 
-    // Calm mode
     case 'C':
       calmOn =
         command.length() > 1 &&
-        command[1] == '1';
+        command.charAt(1) == '1';
 
-      applyLights();
+      if (activeSensor == 0) {
+        showNormalLights();
+      }
       break;
 
-    // Friendly sound
     case 'S':
-      if (volume > 0) {
-        tone(
-          SPEAKER_PIN,
-          880,
-          120
-        );
-
-        delay(150);
-
-        tone(
-          SPEAKER_PIN,
-          1175,
-          180
-        );
-      }
+      playSensor1Sound();
       break;
 
-    // Whistle
     case 'W':
-      if (volume > 0) {
-        tone(
-          SPEAKER_PIN,
-          2600,
-          400
-        );
-      }
+      playSensor2Sound();
       break;
 
-    // Treat mechanism
     case 'T':
-      digitalWrite(
-        TREAT_PIN,
-        HIGH
-      );
-
-      delay(300);
-
-      digitalWrite(
-        TREAT_PIN,
-        LOW
-      );
+      releaseTreat();
       break;
 
-    // All off
     case 'X':
       lightsOn = false;
       calmOn = false;
+      stopSpeaker();
 
-      noTone(SPEAKER_PIN);
-      applyLights();
+      if (activeSensor == 0) {
+        turnLightsOff();
+      }
       break;
 
-    // Volume
     case 'V':
-      volume = value;
+      if (command.length() > 1) {
+        volume = constrain(
+          command.substring(1).toInt(),
+          0,
+          100
+        );
+
+        webSocket.broadcastTXT(
+          String("VOL:") + String(volume)
+        );
+      }
       break;
 
-    // Brightness
     case 'B':
-      brightness = value;
-      applyLights();
+      if (command.length() > 1) {
+        brightness = constrain(
+          command.substring(1).toInt(),
+          0,
+          100
+        );
+
+        if (activeSensor != 0) {
+          showSensorColor(activeSensor);
+        } else {
+          showNormalLights();
+        }
+      }
       break;
 
-    // Status request
     case '?':
-      reportStatus(255);
+      reportStatus(clientNumber);
       break;
   }
 }
 
-// --------------------------------------------------
-// WebSocket event handler
-// --------------------------------------------------
-
-void onWebSocketEvent(
-  uint8_t client,
+void webSocketEvent(
+  uint8_t clientNumber,
   WStype_t type,
   uint8_t *payload,
   size_t length
 ) {
-  if (type == WStype_CONNECTED) {
-    Serial.printf(
-      "App connected: client %u\n",
-      client
-    );
+  switch (type) {
+    case WStype_CONNECTED: {
+      IPAddress clientIP =
+        webSocket.remoteIP(clientNumber);
 
-    reportStatus(client);
-    return;
-  }
+      Serial.print("Website connected from ");
+      Serial.println(clientIP);
 
-  if (type == WStype_DISCONNECTED) {
-    Serial.printf(
-      "App disconnected: client %u\n",
-      client
-    );
-
-    return;
-  }
-
-  if (type != WStype_TEXT) {
-    return;
-  }
-
-  String message;
-  message.reserve(length);
-
-  for (size_t i = 0; i < length; i++) {
-    message += (char)payload[i];
-  }
-
-  int start = 0;
-
-  while (start < message.length()) {
-    int newline = message.indexOf(
-      '\n',
-      start
-    );
-
-    String command;
-
-    if (newline < 0) {
-      command = message.substring(start);
-    } else {
-      command = message.substring(
-        start,
-        newline
-      );
-    }
-
-    handleCommand(command);
-
-    if (newline < 0) {
+      reportStatus(clientNumber);
       break;
     }
 
-    start = newline + 1;
+    case WStype_DISCONNECTED:
+      Serial.println("Website disconnected.");
+      break;
+
+    case WStype_TEXT: {
+      String command;
+
+      for (size_t i = 0; i < length; i++) {
+        command += (char)payload[i];
+      }
+
+      handleCommand(clientNumber, command);
+      break;
+    }
+
+    default:
+      break;
   }
 }
 
 // --------------------------------------------------
-// Arduino setup
+// Wi-Fi
+// --------------------------------------------------
+
+void connectToWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.setHostname(HOSTNAME);
+
+  Serial.print("Connecting to \"");
+  Serial.print(WIFI_SSID);
+  Serial.println("\"");
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println();
+  Serial.println("Wi-Fi connection successful!");
+
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+
+  Serial.print("Signal: ");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm");
+
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  if (MDNS.begin(HOSTNAME)) {
+    MDNS.addService("ws", "tcp", 8080);
+
+    Serial.print("Mat hostname: ");
+    Serial.print(HOSTNAME);
+    Serial.println(".local");
+
+    Serial.print(
+      "Permanent WebSocket name: ws://"
+    );
+    Serial.print(HOSTNAME);
+    Serial.println(".local:8080");
+  } else {
+    Serial.println("Could not start mDNS.");
+  }
+}
+
+// --------------------------------------------------
+// Setup
 // --------------------------------------------------
 
 void setup() {
   Serial.begin(115200);
-  delay(2000);
+  delay(500);
 
-  Serial.println();
-  Serial.println(
-    "================================"
-  );
-  Serial.println(
-    "Paw Unit Prototype 2 starting"
-  );
-  Serial.println(
-    "================================"
-  );
+  pinMode(TREAT_PIN, OUTPUT);
+  digitalWrite(TREAT_PIN, LOW);
 
-  // LED strip
+  for (int i = 0; i < SENSOR_COUNT; i++) {
+    pinMode(PRESSURE_PINS[i], INPUT);
+  }
+
+  analogReadResolution(12);
+
   strip.begin();
   strip.clear();
   strip.show();
 
-  // Speaker and treat output
-  pinMode(
-    SPEAKER_PIN,
-    OUTPUT
-  );
+  stopSpeaker();
 
-  pinMode(
-    TREAT_PIN,
-    OUTPUT
-  );
-
-  digitalWrite(
-    TREAT_PIN,
-    LOW
-  );
-
-  // Pressure sensor
-  pinMode(FSR_PIN, INPUT);
-
-  WiFi.onEvent(onWifiEvent);
-
-  connectWifi();
+  connectToWiFi();
 
   webSocket.begin();
-  webSocket.onEvent(
-    onWebSocketEvent
-  );
+  webSocket.onEvent(webSocketEvent);
 
   Serial.println(
-    "WebSocket server started."
+    "WebSocket server started on port 8080."
   );
+
+  Serial.println("Pressure sensor assignments:");
+  Serial.println("Sensor 1: GPIO 34, yellow");
+  Serial.println("Sensor 2: GPIO 35, red");
+  Serial.println("Sensor 3: GPIO 33, green");
+  Serial.println("Sensor 4: GPIO 32, blue");
+  Serial.println("Paw Unit is ready.");
 }
 
 // --------------------------------------------------
-// Arduino loop
+// Main loop
 // --------------------------------------------------
 
 void loop() {
   webSocket.loop();
+  updatePressureSensors();
 
-  updatePressureSensor();
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println(
+      "Wi-Fi disconnected. Reconnecting..."
+    );
 
-  if (
-    WiFi.status() != WL_CONNECTED &&
-    millis() - lastWifiAttemptMs >= 15000
-  ) {
-    lastWifiAttemptMs = millis();
-    connectWifi();
+    WiFi.disconnect();
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    delay(1000);
   }
 
   delay(5);
