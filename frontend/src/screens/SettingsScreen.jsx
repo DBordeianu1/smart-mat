@@ -95,7 +95,7 @@ function ConnectionCard({ mat }) {
 
       <div className="connection-text">
         <h2>Smart Mat Connection</h2>
-        <p className="connection-model">PU-2048</p>
+        <p className="connection-model">PU-2101</p>
         <p className="connection-id">{detail}</p>
       </div>
 

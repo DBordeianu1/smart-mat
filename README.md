@@ -2,7 +2,7 @@
   <img src="frontend/public/detailed-logo.png" alt="The Paw Unit logo" width="250">
 </p>
 
-<h1 align="center">The Software Subteam presents Your Smart Mat</h1>
+<h1 align="center">The Software Subteam presents the Smart Mat PU-2101</h1>
 
 > Project proposal: [MakerRepo](https://makerepo.com/project_proposals/620.interactive-dog-mat)
 

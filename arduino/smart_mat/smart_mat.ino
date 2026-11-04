@@ -26,7 +26,7 @@
 // Configuration
 // --------------------------------------------------
 
-const char MAT_ID[] = "PU-2048";
+const char MAT_ID[] = "PU-2101";
 const char HOSTNAME[] = "smartmat";
 
 const int LED_PIN = 18;
