@@ -3,11 +3,24 @@ import ScreenHeader from '../components/ScreenHeader.jsx'
 import SliderCard from '../components/SliderCard.jsx'
 
 // Personalization area
-function SettingsScreen({ mat, play }) {
-  const [showAppSettings, setShowAppSettings] = useState(false)
+function SettingsScreen({ mat }) {
+  const [settingsBlocked, setSettingsBlocked] = useState(false)
 
-  if (showAppSettings) {
-    return <AppSettings play={play} onBack={() => setShowAppSettings(false)} />
+  // Browsers can't open system settings directly. Try the platform deep link,
+  // and if the page is still visible afterwards, show a hint instead.
+  function openDeviceSettings() {
+    const ua = navigator.userAgent
+    setSettingsBlocked(false)
+
+    if (/Android/i.test(ua)) {
+      window.location.href = 'intent://settings#Intent;action=android.settings.SETTINGS;end'
+    } else if (/iPhone|iPad|iPod/i.test(ua)) {
+      window.location.href = 'App-Prefs:'
+    }
+
+    setTimeout(() => {
+      if (document.visibilityState === 'visible') setSettingsBlocked(true)
+    }, 1200)
   }
 
   return (
@@ -33,12 +46,15 @@ function SettingsScreen({ mat, play }) {
           onChange={mat.setBrightness}
         />
 
-        <button
-          className="outline-button"
-          onClick={() => setShowAppSettings(true)}
-        >
+        <button className="outline-button" onClick={openDeviceSettings}>
           Go to app settings
         </button>
+
+        {settingsBlocked && (
+          <p className="hint" role="status">
+            Your browser blocked this. Open your device's Settings app manually.
+          </p>
+        )}
       </div>
     </section>
   )
@@ -94,48 +110,6 @@ function ConnectionCard({ mat }) {
         )}
       </div>
     </div>
-  )
-}
-
-function AppSettings({ play, onBack }) {
-  const [cleared, setCleared] = useState(false)
-
-  function clearData() {
-    play.reset()
-    setCleared(true)
-  }
-
-  return (
-    <section className="screen settings-screen">
-      <ScreenHeader title="App settings" />
-
-      <button className="text-button back-button" onClick={onBack}>
-        ← Back to Settings
-      </button>
-
-      <div className="settings-stack">
-        <SliderCard
-          label="Daily play goal"
-          display={`${play.goalHours}h`}
-          hint="Used for the hours played bar on Analytics."
-          value={play.goalHours}
-          min={0.5}
-          max={8}
-          step={0.5}
-          onChange={play.setGoalHours}
-        />
-
-        <div className="card">
-          <h2>Mat data</h2>
-          <p className="card-note">
-            Play time is saved only in this browser on this device.
-          </p>
-          <button className="outline-button" onClick={clearData}>
-            {cleared ? 'Cleared' : "Clear today's play time"}
-          </button>
-        </div>
-      </div>
-    </section>
   )
 }
 

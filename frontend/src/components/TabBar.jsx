@@ -1,20 +1,24 @@
+import { ChartColumn, House, Settings, User } from 'lucide-react'
+
 const TABS = [
-  { id: 'settings', label: 'Settings' },
-  { id: 'home', label: 'Home' },
-  { id: 'analytics', label: 'Analytics' },
+  { id: 'settings', label: 'Settings', Icon: Settings },
+  { id: 'home', label: 'Home', Icon: House },
+  { id: 'analytics', label: 'Analytics', Icon: ChartColumn },
+  { id: 'profile', label: 'Profile', Icon: User },
 ]
 
 function TabBar({ current, onChange }) {
   return (
     <nav className="tab-bar" aria-label="Main">
-      {TABS.map(tab => (
+      {TABS.map(({ id, label, Icon }) => (
         <button
-          key={tab.id}
-          className={`tab ${current === tab.id ? 'active' : ''}`}
-          aria-current={current === tab.id ? 'page' : undefined}
-          onClick={() => onChange(tab.id)}
+          key={id}
+          className={`tab ${current === id ? 'active' : ''}`}
+          aria-label={label}
+          aria-current={current === id ? 'page' : undefined}
+          onClick={() => onChange(id)}
         >
-          {tab.label}
+          <Icon strokeWidth={2} aria-hidden="true" />
         </button>
       ))}
     </nav>

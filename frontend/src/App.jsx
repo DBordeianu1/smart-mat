@@ -4,6 +4,7 @@ import { useMat } from './hooks/useMat.js'
 import { usePlayTime } from './hooks/usePlayTime.js'
 import AnalyticsScreen from './screens/AnalyticsScreen.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
+import ProfileScreen from './screens/ProfileScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
 import './App.css'
 
@@ -18,8 +19,9 @@ function App() {
 
       <main className="app-main">
         {tab === 'home' && <HomeScreen mat={mat} />}
-        {tab === 'settings' && <SettingsScreen mat={mat} play={play} />}
+        {tab === 'settings' && <SettingsScreen mat={mat} />}
         {tab === 'analytics' && <AnalyticsScreen mat={mat} play={play} />}
+        {tab === 'profile' && <ProfileScreen play={play} />}
 
         {mat.error && (
           <p className="error-message" role="alert">

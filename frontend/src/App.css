@@ -17,6 +17,11 @@
   --error: #b3261e;
 }
 
+/* Keep room for the scroll bar so the layout doesn't shift between screens */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background-color: var(--cream);
   color: var(--navy);
@@ -50,7 +55,7 @@ button:focus-visible,
   min-height: 100dvh;
   max-width: 1000px;
   margin: 0 auto;
-  padding: 32px 24px 100px;
+  padding: 32px 24px 108px;
   display: flex;
   flex-direction: column;
 }
@@ -59,6 +64,10 @@ button:focus-visible,
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+.home-screen {
+  flex: 1;
 }
 
 .screen {
@@ -76,7 +85,7 @@ button:focus-visible,
   justify-content: space-between;
   align-items: center;
   gap: 24px;
-  min-height: 80px;
+  min-height: 150px;
 }
 
 .screen-header h1 {
@@ -91,21 +100,9 @@ button:focus-visible,
 
 .paw-badge {
   flex-shrink: 0;
-  width: 96px;
-  height: 96px;
-  opacity: 0.18;
-  transform: rotate(-8deg);
-}
-
-.paw-badge-text {
-  fill: var(--navy);
-  font-size: 14px;
-  font-weight: 500;
-  font-style: italic;
-}
-
-.paw-badge-paw {
-  fill: var(--navy);
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
 }
 
 /* Status Pills */
@@ -151,6 +148,37 @@ button:focus-visible,
   color: var(--navy);
 }
 
+.header-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* One pill that flips between Turn On and Turn Off */
+.pill-power::before {
+  display: none;
+}
+
+.pill-power {
+  border: 1.5px solid transparent;
+}
+
+.pill-power-on {
+  background-color: white;
+  border-color: var(--card-border);
+  color: var(--muted);
+}
+
+.pill-power-off {
+  background-color: var(--muted);
+  color: white;
+}
+
+.pill-power:disabled {
+  opacity: 0.55;
+}
+
 .status-chip {
   display: inline-flex;
   align-items: center;
@@ -176,10 +204,21 @@ button:focus-visible,
   color: var(--green);
 }
 
-/* Home: Watermark */
+/* Home: Background */
 
-.watermark {
-  display: none;
+.home-background {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: -1;
+  width: 100vh;
+  height: 100vh;
+  width: 100dvh;
+  height: 100dvh;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
 }
 
 .hint {
@@ -192,14 +231,15 @@ button:focus-visible,
 .action-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  flex: 1;
   gap: 32px;
 }
 
 .action-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-height: 180px;
+  display: grid;
+  grid-template-rows: minmax(44px, 1fr) auto auto;
+  justify-items: start;
   padding: 24px 24px 28px;
   background-color: var(--yellow);
   border: none;
@@ -216,29 +256,35 @@ button:focus-visible,
   transform: scale(0.98);
 }
 
-.action-card.active {
-  background-color: var(--yellow-deep);
-  box-shadow: inset 0 0 0 3px var(--navy);
+.action-card:disabled {
+  background-color: color-mix(in srgb, var(--yellow) 55%, var(--cream));
 }
 
-.action-card:disabled {
+.action-card:disabled > * {
   opacity: 0.55;
+}
+
+/* The icon fills the space above the text, as a square */
+.action-icon-area {
+  container-type: size;
+  align-self: stretch;
+  justify-self: stretch;
+  min-height: 0;
 }
 
 .action-icon {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 52px;
-  height: 52px;
-  padding: 8px;
+  width: calc(min(100cqw, 100cqh) * 0.85);
+  height: calc(min(100cqw, 100cqh) * 0.85);
   background-color: white;
   border-radius: 50%;
 }
 
 .action-icon svg {
-  width: 100%;
-  height: 100%;
+  width: 62%;
+  height: 62%;
 }
 
 .action-label {
@@ -376,8 +422,6 @@ button:focus-visible,
   background: none;
   border: none;
   color: var(--muted);
-  font-size: 15px;
-  font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -527,37 +571,53 @@ button:focus-visible,
 /* Tab Bar */
 
 .tab-bar {
-  position: sticky;
-  bottom: 16px;
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
   display: flex;
-  align-self: center;
-  width: 100%;
-  max-width: 500px;
-  background-color: var(--yellow-soft);
-  border-radius: 12px;
-  /* Hide content scrolling underneath */
-  box-shadow: 0 0 0 16px var(--cream);
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 8px calc(16px + env(safe-area-inset-bottom));
+  background-color: white;
+  border-top: 1px solid rgb(0 0 0 / 0.08);
 }
 
 .tab {
   flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  max-width: 160px;
   padding: 16px 12px;
-  background: none;
+  background-color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: 32px;
   color: var(--muted);
-  font-size: 22px;
+  font-size: 15px;
   font-weight: 600;
+  transition: transform 0.15s;
+}
+
+.tab svg {
+  width: 28px;
+  height: 28px;
 }
 
 .tab:hover {
+  background-color: var(--yellow-soft);
   color: var(--navy);
+  transform: scale(1.06);
+  z-index: 1;
 }
 
 .tab.active {
   background-color: var(--yellow);
   color: var(--navy);
+  z-index: 2;
 }
 
 /* Phone */
@@ -565,7 +625,7 @@ button:focus-visible,
 @media (max-width: 899px) {
   .app {
     max-width: 560px;
-    padding: 24px 20px 120px;
+    padding: 24px 20px 108px;
   }
 
   .screen-header h1 {
@@ -582,14 +642,7 @@ button:focus-visible,
   }
 
   .action-card {
-    min-height: 160px;
     padding: 20px 20px 24px;
-  }
-
-  .action-icon {
-    width: 48px;
-    height: 48px;
-    padding: 8px;
   }
 
   .action-label {
@@ -725,7 +778,7 @@ button:focus-visible,
 
   .tab {
     padding: 14px 8px;
-    font-size: 20px;
+    font-size: 14px;
   }
 }
 
@@ -733,7 +786,7 @@ button:focus-visible,
 
 @media (max-width: 400px) {
   .app {
-    padding: 20px 16px 130px;
+    padding: 20px 16px 96px;
   }
 
   .screen {
@@ -742,7 +795,7 @@ button:focus-visible,
 
   .screen-header {
     gap: 16px;
-    min-height: 64px;
+    min-height: 110px;
   }
 
   .screen-header h1 {
@@ -750,8 +803,8 @@ button:focus-visible,
   }
 
   .paw-badge {
-    width: 68px;
-    height: 68px;
+    width: 110px;
+    height: 110px;
   }
 
   .pill {
@@ -765,13 +818,7 @@ button:focus-visible,
   }
 
   .action-card {
-    min-height: 140px;
     padding: 16px;
-  }
-
-  .action-icon {
-    width: 44px;
-    height: 44px;
   }
 
   .action-label {
@@ -782,11 +829,6 @@ button:focus-visible,
   .action-description {
     margin-top: 6px;
     font-size: 13px;
-  }
-
-  .watermark {
-    inset: 30px -16px 0;
-    font-size: 80px;
   }
 
   .connection-card {
@@ -838,6 +880,11 @@ button:focus-visible,
 
   .tab {
     padding: 12px 6px;
-    font-size: 15px;
+    font-size: 12px;
+  }
+
+  .tab svg {
+    width: 22px;
+    height: 22px;
   }
 }

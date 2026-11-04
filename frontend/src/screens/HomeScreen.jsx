@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import ScreenHeader from '../components/ScreenHeader.jsx'
 import {
   CalmIcon,
-  PowerIcon,
+  EclipseIcon,
   SoundIcon,
   SunIcon,
-  TreatIcon,
   WhistleIcon,
+  ZapIcon,
 } from '../components/Icons.jsx'
 
 // The mat's control plane
@@ -29,9 +29,17 @@ function HomeScreen({ mat }) {
       id: 'lights',
       label: 'Lights',
       icon: <SunIcon />,
-      description: mat.lightsOn ? 'Turn mat lights off' : 'Turn mat lights on',
-      pressed: mat.lightsOn,
-      onClick: mat.toggleLights,
+      description: 'Turn mat lights on',
+      done: 'Lights are on',
+      onClick: mat.turnLightsOn,
+    },
+    {
+      id: 'calm',
+      label: 'Calm mode',
+      icon: <CalmIcon />,
+      description: 'Dim lights and audio',
+      done: 'Calm mode on',
+      onClick: mat.turnCalmOn,
     },
     {
       id: 'sound',
@@ -42,20 +50,20 @@ function HomeScreen({ mat }) {
       onClick: mat.playSound,
     },
     {
-      id: 'treat',
-      label: 'Treat',
-      icon: <TreatIcon />,
-      description: 'Release one treat',
-      done: 'Treat released!',
-      onClick: mat.releaseTreat,
+      id: 'lights-off',
+      label: 'Lights off',
+      icon: <EclipseIcon />,
+      description: 'Turn mat lights off',
+      done: 'Lights are off',
+      onClick: mat.turnLightsOff,
     },
     {
-      id: 'calm',
-      label: 'Calm mode',
-      icon: <CalmIcon />,
-      description: mat.calmOn ? 'Back to normal' : 'Dim lights and audio',
-      pressed: mat.calmOn,
-      onClick: mat.toggleCalm,
+      id: 'calm-off',
+      label: 'Calm off',
+      icon: <ZapIcon />,
+      description: 'Back to normal',
+      done: 'Back to normal',
+      onClick: mat.turnCalmOff,
     },
     {
       id: 'whistle',
@@ -65,26 +73,28 @@ function HomeScreen({ mat }) {
       done: 'Whistling…',
       onClick: mat.playWhistle,
     },
-    {
-      id: 'all-off',
-      label: 'All off',
-      icon: <PowerIcon />,
-      description: 'Stop every mat feature',
-      done: 'Everything is off',
-      onClick: mat.allOff,
-    },
   ]
 
   return (
     <section className="screen home-screen">
-      <div className="watermark" aria-hidden="true">
-        <span>The Paw</span>
-        <span>Unit</span>
-        <span>The Paw</span>
-      </div>
+      <img
+        className="home-background"
+        src="/faded-logo-light.png"
+        alt=""
+        aria-hidden="true"
+      />
 
       <ScreenHeader title="Home">
-        <ConnectionPill mat={mat} />
+        <div className="header-pills">
+          <button
+            className={`pill pill-power ${mat.powerOn ? 'pill-power-off' : 'pill-power-on'}`}
+            disabled={!mat.live}
+            onClick={mat.togglePower}
+          >
+            {mat.powerOn ? 'Turn Off' : 'Turn On'}
+          </button>
+          <ConnectionPill mat={mat} />
+        </div>
       </ScreenHeader>
 
       {!mat.live && (
@@ -97,14 +107,13 @@ function HomeScreen({ mat }) {
         {actions.map(action => (
           <button
             key={action.id}
-            className={`action-card ${action.pressed ? 'active' : ''}`}
-            aria-pressed={action.pressed}
+            className="action-card"
             disabled={!mat.live}
-            onClick={() =>
-              action.done ? runOnce(action.id, action.onClick) : action.onClick()
-            }
+            onClick={() => runOnce(action.id, action.onClick)}
           >
-            <span className="action-icon">{action.icon}</span>
+            <span className="action-icon-area">
+              <span className="action-icon">{action.icon}</span>
+            </span>
             <span className="action-label">{action.label}</span>
             <span className="action-description" aria-live="polite">
               {sent === action.id ? action.done : action.description}

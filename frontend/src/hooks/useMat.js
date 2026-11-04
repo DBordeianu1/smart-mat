@@ -16,9 +16,8 @@ export function useMat() {
   const [busy, setBusy] = useState(false)
   const [demoMode, setDemoMode] = useState(false)
   const [error, setError] = useState('')
+  const [powerOn, setPowerOn] = useState(false)
 
-  const [lightsOn, setLightsOn] = useState(false)
-  const [calmOn, setCalmOn] = useState(false)
   const [volume, setVolumeState] = useState(
     () => loadJSON(SETTINGS_KEY, {}).volume ?? 60
   )
@@ -39,9 +38,8 @@ export function useMat() {
   }, [volume, brightness])
 
   function resetMatState() {
+    setPowerOn(false)
     setConnected(false)
-    setLightsOn(false)
-    setCalmOn(false)
     setMatId(null)
     setBattery(null)
     setPlaying(false)
@@ -129,9 +127,8 @@ export function useMat() {
         send(`B${brightness}`)
         send('?')
 
+        setPowerOn(false)
         setDemoMode(false)
-        setLightsOn(false)
-        setCalmOn(false)
         setConnected(true)
       }
 
@@ -194,23 +191,26 @@ export function useMat() {
     if (connected || busy || connecting) return
 
     setDemoMode(!demoMode)
-    setLightsOn(false)
-    setCalmOn(false)
+    setPowerOn(false)
     setError('')
   }
 
   // Mat actions
 
-  function toggleLights() {
-    const next = !lightsOn
-    setLightsOn(next)
-    send(`L${next ? 1 : 0}`)
+  function turnLightsOn() {
+    send('L1')
   }
 
-  function toggleCalm() {
-    const next = !calmOn
-    setCalmOn(next)
-    send(`C${next ? 1 : 0}`)
+  function turnLightsOff() {
+    send('L0')
+  }
+
+  function turnCalmOn() {
+    send('C1')
+  }
+
+  function turnCalmOff() {
+    send('C0')
   }
 
   function playSound() {
@@ -225,10 +225,16 @@ export function useMat() {
     send('T')
   }
 
-  function allOff() {
-    setLightsOn(false)
-    setCalmOn(false)
-    send('X')
+  // One switch: everything on (lights on, calm off), or everything off
+  function togglePower() {
+    if (powerOn) {
+      send('X')
+    } else {
+      send('C0')
+      send('L1')
+    }
+
+    setPowerOn(!powerOn)
   }
 
   function setVolume(value) {
@@ -255,8 +261,7 @@ export function useMat() {
     demoMode,
     live: connected || demoMode,
     error,
-    lightsOn,
-    calmOn,
+    powerOn,
     volume,
     brightness,
     matId,
@@ -265,12 +270,14 @@ export function useMat() {
     connect,
     disconnect,
     toggleDemoMode,
-    toggleLights,
-    toggleCalm,
+    turnLightsOn,
+    turnLightsOff,
+    turnCalmOn,
+    turnCalmOff,
     playSound,
     playWhistle,
     releaseTreat,
-    allOff,
+    togglePower,
     setVolume,
     setBrightness,
   }

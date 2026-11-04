@@ -8,11 +8,12 @@ This app enables two-way communication with a smart mat device via WiFi, allowin
 
 ## The App
 
-Three screens, switched with the tab bar at the bottom. Each one adapts to desktop, phone and small phone widths.
+Four screens, switched with the tab bar at the bottom. Each one adapts to desktop, phone and small phone widths.
 
-- **Home:** the mat's control plane. Lights, Sound, Treat, Calm mode, Whistle and All off.
-- **Settings:** connect or disconnect the mat, set sound volume and light brightness, and open app settings (daily play goal, clear play data).
+- **Home:** the mat's control plane. Lights on, Calm mode on, Sound, Lights off, Calm mode off and Whistle. A Turn On / Turn Off pill next to the connection pill switches everything on or off.
+- **Settings:** connect or disconnect the mat, set sound volume and light brightness, and try to open the device's settings (Android Chrome only; other browsers show a hint).
 - **Analytics:** connected devices, battery level and hours played today. This data is saved only in the browser on this device.
+- **Profile:** app preferences: daily play goal and clearing saved play data.
 
 **Demo Mode** (in Settings) lets you try every screen without the mat, with sample analytics data.
 
@@ -59,6 +60,7 @@ The app communicates with the smart mat via WiFi using WebSocket. Each message i
 1. Ensure your smart mat is running and connected to the same WiFi network.
 2. Install dependencies and start the app:
    ```bash
+   cd frontend
    npm install
    npm run dev
    ```
