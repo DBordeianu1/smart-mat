@@ -11,7 +11,7 @@ This app enables two-way communication with a smart mat device via WiFi, allowin
 Four screens, switched with the tab bar at the bottom. Each one adapts to desktop, phone and small phone widths.
 
 - **Home:** the mat's control plane. Lights on, Calm mode on, Sound, Lights off, Calm mode off and Whistle. A Turn On / Turn Off pill next to the connection pill switches everything on or off.
-- **Settings:** connect or disconnect the mat, set sound volume and light brightness, and try to open the device's settings (Android Chrome only; other browsers show a hint).
+- **Settings:** connect or disconnect the mat, set sound volume and light brightness, and try to open the device's settings (Android Chrome only; other browsers show a notice right away).
 - **Analytics:** connected devices, battery level and hours played today. This data is saved only in the browser on this device.
 - **Profile:** app preferences: daily play goal and clearing saved play data.
 

@@ -66,7 +66,8 @@ button:focus-visible,
   flex-direction: column;
 }
 
-.home-screen {
+.home-screen,
+.settings-screen {
   flex: 1;
 }
 
@@ -81,11 +82,21 @@ button:focus-visible,
 /* Header */
 
 .screen-header {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 24px;
   min-height: 150px;
+}
+
+.screen-header-note {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  color: var(--muted);
+  font-size: 15px;
 }
 
 .screen-header h1 {
@@ -119,14 +130,6 @@ button:focus-visible,
   font-weight: 600;
 }
 
-.pill::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: currentColor;
-}
-
 .pill-connected {
   background-color: var(--green);
   color: white;
@@ -156,10 +159,6 @@ button:focus-visible,
 }
 
 /* One pill that flips between Turn On and Turn Off */
-.pill-power::before {
-  display: none;
-}
-
 .pill-power {
   border: 1.5px solid transparent;
 }
@@ -191,14 +190,6 @@ button:focus-visible,
   font-weight: 600;
 }
 
-.status-chip::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: currentColor;
-}
-
 .status-chip.connected {
   background-color: var(--green-soft);
   color: var(--green);
@@ -224,6 +215,41 @@ button:focus-visible,
 .hint {
   color: var(--muted);
   font-size: 15px;
+}
+
+/* Popup notice above the nav bar that fades out on its own */
+.toast {
+  position: fixed;
+  bottom: 112px;
+  left: 50%;
+  z-index: 2;
+  max-width: calc(100% - 32px);
+  padding: 12px 20px;
+  background-color: var(--navy);
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  text-align: center;
+  transform: translateX(-50%);
+  animation: toast-in-out 4s ease forwards;
+}
+
+@keyframes toast-in-out {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+
+  8%,
+  85% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
 }
 
 /* Home: Action Cards */
@@ -317,6 +343,11 @@ button:focus-visible,
   margin: 0;
 }
 
+/* Slider titles match the Home card labels */
+.card.slider-card h2 {
+  font-size: 30px;
+}
+
 .card-row {
   display: flex;
   justify-content: space-between;
@@ -339,6 +370,9 @@ button:focus-visible,
 .settings-grid {
   display: grid;
   grid-template-columns: 1fr 2fr;
+  grid-template-rows: 1fr 1fr auto;
+  grid-auto-rows: auto;
+  flex: 1;
   gap: 24px 32px;
 }
 
@@ -348,6 +382,21 @@ button:focus-visible,
 
 .settings-grid > :not(.connection-card) {
   grid-column: 2;
+}
+
+.settings-grid > .card {
+  justify-content: center;
+}
+
+.settings-grid > .card,
+.settings-grid > .outline-button {
+  transition: transform 0.15s;
+}
+
+.settings-grid > .card:hover,
+.settings-grid > .outline-button:hover {
+  border-color: var(--card-border);
+  transform: translateY(-2px);
 }
 
 .settings-stack {
@@ -422,8 +471,7 @@ button:focus-visible,
   background: none;
   border: none;
   color: var(--muted);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  font-size: 15px;
 }
 
 .text-button:hover:not(:disabled) {
@@ -620,6 +668,10 @@ button:focus-visible,
   z-index: 2;
 }
 
+.tab.active:hover {
+  background-color: var(--yellow-deep);
+}
+
 /* Phone */
 
 @media (max-width: 899px) {
@@ -650,6 +702,10 @@ button:focus-visible,
     font-size: 24px;
   }
 
+  .card.slider-card h2 {
+    font-size: 24px;
+  }
+
   .action-description {
     margin-top: 8px;
     font-size: 14px;
@@ -661,6 +717,7 @@ button:focus-visible,
 
   .settings-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr auto;
     gap: 20px;
   }
 
@@ -704,6 +761,10 @@ button:focus-visible,
 
   .connection-id {
     display: inline;
+    font-size: 14px;
+  }
+
+  .text-button {
     font-size: 14px;
   }
 
@@ -823,6 +884,10 @@ button:focus-visible,
 
   .action-label {
     margin-top: 12px;
+    font-size: 20px;
+  }
+
+  .card.slider-card h2 {
     font-size: 20px;
   }
 

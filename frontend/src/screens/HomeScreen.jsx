@@ -84,7 +84,14 @@ function HomeScreen({ mat }) {
         aria-hidden="true"
       />
 
-      <ScreenHeader title="Home">
+      <ScreenHeader
+        title="Home"
+        note={
+          mat.live
+            ? undefined
+            : 'Connect the mat or try Demo Mode in Settings to use these controls.'
+        }
+      >
         <div className="header-pills">
           <button
             className={`pill pill-power ${mat.powerOn ? 'pill-power-off' : 'pill-power-on'}`}
@@ -96,12 +103,6 @@ function HomeScreen({ mat }) {
           <ConnectionPill mat={mat} />
         </div>
       </ScreenHeader>
-
-      {!mat.live && (
-        <p className="hint">
-          Connect the mat or try Demo Mode in Settings to use these controls.
-        </p>
-      )}
 
       <div className="action-grid">
         {actions.map(action => (

@@ -1,25 +1,32 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ScreenHeader from '../components/ScreenHeader.jsx'
 import SliderCard from '../components/SliderCard.jsx'
 
 // Personalization area
 function SettingsScreen({ mat }) {
-  const [settingsBlocked, setSettingsBlocked] = useState(false)
+  // Set to a new value each time the notice should pop up (restarts it)
+  const [blockedAt, setBlockedAt] = useState(null)
 
-  // Browsers can't open system settings directly. Try the platform deep link,
-  // and if the page is still visible afterwards, show a hint instead.
+  // The "blocked" notice is a popup that goes away on its own
+  useEffect(() => {
+    if (blockedAt === null) return
+    const timer = setTimeout(() => setBlockedAt(null), 4000)
+    return () => clearTimeout(timer)
+  }, [blockedAt])
+
+  // Only Android Chrome can open system settings from a web page, so on iPhone
+  // and desktop browsers the notice shows right away. On Android, try the
+  // deep link and show the notice if the page is still visible afterwards.
   function openDeviceSettings() {
-    const ua = navigator.userAgent
-    setSettingsBlocked(false)
-
-    if (/Android/i.test(ua)) {
-      window.location.href = 'intent://settings#Intent;action=android.settings.SETTINGS;end'
-    } else if (/iPhone|iPad|iPod/i.test(ua)) {
-      window.location.href = 'App-Prefs:'
+    if (!/Android/i.test(navigator.userAgent)) {
+      setBlockedAt(Date.now())
+      return
     }
 
+    window.location.href = 'intent://settings#Intent;action=android.settings.SETTINGS;end'
+
     setTimeout(() => {
-      if (document.visibilityState === 'visible') setSettingsBlocked(true)
+      if (document.visibilityState === 'visible') setBlockedAt(Date.now())
     }, 1200)
   }
 
@@ -47,24 +54,24 @@ function SettingsScreen({ mat }) {
         />
 
         <button className="outline-button" onClick={openDeviceSettings}>
-          Go to app settings
+          Go to Device Settings
         </button>
-
-        {settingsBlocked && (
-          <p className="hint" role="status">
-            Your browser blocked this. Open your device's Settings app manually.
-          </p>
-        )}
       </div>
+
+      {blockedAt !== null && (
+        <p key={blockedAt} className="toast" role="status">
+          Your browser blocked this. Open your device's Settings app manually.
+        </p>
+      )}
     </section>
   )
 }
 
 function ConnectionCard({ mat }) {
   let status = 'Not connected'
-  let detail = 'Connect via WiFi'
+  let detail = 'Connect via Wi-Fi'
   let action = mat.connect
-  let actionLabel = mat.connecting ? 'Connecting…' : 'Connect via WiFi'
+  let actionLabel = mat.connecting ? 'Connecting…' : 'Connect via Wi-Fi'
 
   if (mat.connected) {
     status = 'Connected'
@@ -78,6 +85,8 @@ function ConnectionCard({ mat }) {
     actionLabel = 'Exit Demo Mode'
   }
 
+  const demoLinkHidden = mat.connected || mat.demoMode
+
   return (
     <div className="card connection-card">
       <span className={`status-chip ${mat.connected ? 'connected' : ''}`}>
@@ -85,8 +94,8 @@ function ConnectionCard({ mat }) {
       </span>
 
       <div className="connection-text">
-        <h2>Paw Unit connection</h2>
-        <p className="connection-model">WiFi</p>
+        <h2>Smart Mat Connection</h2>
+        <p className="connection-model">PU-2048</p>
         <p className="connection-id">{detail}</p>
       </div>
 
@@ -99,15 +108,17 @@ function ConnectionCard({ mat }) {
           {actionLabel}
         </button>
 
-        {!mat.connected && !mat.demoMode && (
-          <button
-            className="text-button"
-            onClick={mat.toggleDemoMode}
-            disabled={mat.connecting || mat.busy}
-          >
-            Try Demo Mode
-          </button>
-        )}
+        {/* Always takes up its space, so the yellow button never shifts */}
+        <button
+          className="text-button"
+          onClick={mat.toggleDemoMode}
+          disabled={mat.connecting || mat.busy || demoLinkHidden}
+          style={demoLinkHidden ? { visibility: 'hidden' } : undefined}
+          aria-hidden={demoLinkHidden}
+          tabIndex={demoLinkHidden ? -1 : undefined}
+        >
+          Try Demo Mode
+        </button>
       </div>
     </div>
   )
