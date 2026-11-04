@@ -1,16 +1,8 @@
-import { useState } from 'react'
 import ScreenHeader from '../components/ScreenHeader.jsx'
 import SliderCard from '../components/SliderCard.jsx'
 
-// In-app preferences and saved data
+// In-app preferences
 function ProfileScreen({ play }) {
-  const [cleared, setCleared] = useState(false)
-
-  function clearData() {
-    play.reset()
-    setCleared(true)
-  }
-
   return (
     <section className="screen settings-screen">
       <ScreenHeader title="Profile" />
@@ -18,7 +10,7 @@ function ProfileScreen({ play }) {
       <div className="settings-stack">
         <SliderCard
           label="Daily play goal"
-          display={`${play.goalHours}h`}
+          display={`${play.goalHours} h`}
           hint="Used for the hours played bar on Analytics."
           value={play.goalHours}
           min={0.5}
@@ -26,16 +18,6 @@ function ProfileScreen({ play }) {
           step={0.5}
           onChange={play.setGoalHours}
         />
-
-        <div className="card">
-          <h2>Mat data</h2>
-          <p className="card-note">
-            Play time is saved only in this browser on this device.
-          </p>
-          <button className="outline-button" onClick={clearData}>
-            {cleared ? 'Cleared' : "Clear today's play time"}
-          </button>
-        </div>
       </div>
     </section>
   )

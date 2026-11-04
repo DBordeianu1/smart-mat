@@ -67,7 +67,8 @@ button:focus-visible,
 }
 
 .home-screen,
-.settings-screen {
+.settings-screen,
+.analytics-screen {
   flex: 1;
 }
 
@@ -82,21 +83,11 @@ button:focus-visible,
 /* Header */
 
 .screen-header {
-  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 24px;
   min-height: 150px;
-}
-
-.screen-header-note {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  color: var(--muted);
-  font-size: 15px;
 }
 
 .screen-header h1 {
@@ -389,12 +380,14 @@ button:focus-visible,
 }
 
 .settings-grid > .card,
-.settings-grid > .outline-button {
+.settings-grid > .outline-button,
+.settings-stack > .card {
   transition: transform 0.15s;
 }
 
 .settings-grid > .card:hover,
-.settings-grid > .outline-button:hover {
+.settings-grid > .outline-button:hover,
+.settings-stack > .card:hover {
   border-color: var(--card-border);
   transform: translateY(-2px);
 }
@@ -403,7 +396,6 @@ button:focus-visible,
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 640px;
 }
 
 .connection-card .status-chip {
@@ -540,31 +532,63 @@ button:focus-visible,
   display: flex;
   align-items: center;
   gap: 12px;
-  align-self: flex-start;
+  align-self: stretch;
   padding: 10px 20px;
   background-color: var(--info-bg);
   border-radius: 8px;
   color: var(--info-text);
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 400;
 }
 
-.info-banner svg {
+.info-banner-text {
+  flex: 1;
+}
+
+/* Same effective height as the icon, so the banner keeps its height */
+.info-banner-close {
+  display: grid;
   flex-shrink: 0;
+  place-items: center;
   width: 26px;
   height: 26px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: inherit;
+}
+
+.info-banner-close:hover {
+  background-color: rgb(59 134 168 / 0.15);
+}
+
+.info-banner .info-banner-close svg {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+/* Bigger icon, with negative margins so the banner keeps its height */
+.info-banner svg {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  margin: -4px 0;
 }
 
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  flex: 1;
   gap: 24px;
 }
 
 .stat-card {
   gap: 16px;
-  min-height: 280px;
-  padding: 24px;
+  /* Same space below the bar as below the Connect button on Settings */
+  padding: 24px 24px 67px;
 }
 
 .stat-value {
@@ -588,12 +612,12 @@ button:focus-visible,
 
 .stat-note {
   font-size: 16px;
-  margin: 0;
+  margin: auto 0 0;
 }
 
 .meter {
   height: 18px;
-  margin-top: auto;
+  margin-top: 0;
   overflow: hidden;
   border-radius: 999px;
   background-color: var(--yellow-soft);
@@ -788,12 +812,13 @@ button:focus-visible,
 
   .info-banner {
     align-self: stretch;
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .info-banner svg {
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
+    margin: -3px 0;
   }
 
   /* Stat cards switch to a row: label left, value right */
@@ -816,6 +841,7 @@ button:focus-visible,
 
   .stat-value {
     grid-area: value;
+    margin: 0;
     font-size: 26px;
     font-weight: 600;
   }
@@ -828,6 +854,7 @@ button:focus-visible,
 
   .stat-note {
     grid-area: note;
+    margin: 0;
     font-size: 14px;
   }
 
@@ -935,12 +962,13 @@ button:focus-visible,
 
   .info-banner {
     padding: 10px 12px;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .info-banner svg {
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    height: 24px;
+    margin: -3px 0;
   }
 
   .tab {

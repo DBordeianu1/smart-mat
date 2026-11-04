@@ -1,5 +1,5 @@
+import InfoBanner from '../components/InfoBanner.jsx'
 import ScreenHeader from '../components/ScreenHeader.jsx'
-import { InfoIcon } from '../components/Icons.jsx'
 
 const MAX_DEVICES = 10
 
@@ -7,8 +7,12 @@ const MAX_DEVICES = 10
 const DEMO_STATS = { devices: 1, battery: 60, hours: 1.5 }
 
 function formatHours(hours) {
-  if (hours < 1) return `${Math.round(hours * 60)}m`
-  return `${Number(hours.toFixed(1))}h`
+  if (hours < 1) {
+    const minutes = Math.round(hours * 60)
+    return minutes === 0 ? '0' : `${minutes} m`
+  }
+
+  return `${Number(hours.toFixed(1))} h`
 }
 
 function batteryNote(battery) {
@@ -18,7 +22,7 @@ function batteryNote(battery) {
 }
 
 function playNote(hours, goal) {
-  if (hours >= goal) return 'Daily play goal reached. Good dog!'
+  if (hours >= goal) return 'Daily play goal reached!'
   if (hours >= goal / 2) return 'A little more play time left to reach your set goal!'
   return 'Plenty of play time left to reach your set goal.'
 }
@@ -29,8 +33,8 @@ function AnalyticsScreen({ mat, play }) {
   const battery = mat.demoMode ? DEMO_STATS.battery : mat.battery
   const hours = mat.demoMode ? DEMO_STATS.hours : play.hoursToday
 
-  let batteryValue = '—'
-  let batteryText = 'Connect the mat to see its battery.'
+  let batteryValue = '-'
+  let batteryText = 'Connect the mat to see its battery level.'
 
   if (battery !== null) {
     batteryValue = `${battery}%`
@@ -43,12 +47,11 @@ function AnalyticsScreen({ mat, play }) {
     <section className="screen analytics-screen">
       <ScreenHeader title="Data Analytics" />
 
-      <p className="info-banner">
-        <InfoIcon />
+      <InfoBanner id={mat.demoMode ? 'demo' : 'privacy'}>
         {mat.demoMode
           ? 'Demo Mode: showing sample data.'
           : 'Your mat data stays on this device.'}
-      </p>
+      </InfoBanner>
 
       <div className="stat-grid">
         <StatCard

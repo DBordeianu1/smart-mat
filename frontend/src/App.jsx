@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import TabBar from './components/TabBar.jsx'
 import { useMat } from './hooks/useMat.js'
 import { usePlayTime } from './hooks/usePlayTime.js'
@@ -8,8 +8,22 @@ import ProfileScreen from './screens/ProfileScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
 import './App.css'
 
+const APP_NAME = 'Your Smart Mat'
+
+// Browser tab title for each screen
+const PAGE_TITLES = {
+  settings: 'Settings',
+  home: 'Home',
+  analytics: 'Data Analytics',
+  profile: 'Profile',
+}
+
 function App() {
   const [tab, setTab] = useState('home')
+
+  useEffect(() => {
+    document.title = `${PAGE_TITLES[tab]} | ${APP_NAME}`
+  }, [tab])
 
   const mat = useMat()
   const play = usePlayTime(mat.playing)

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import InfoBanner from '../components/InfoBanner.jsx'
 import ScreenHeader from '../components/ScreenHeader.jsx'
 import {
   CalmIcon,
@@ -84,14 +85,7 @@ function HomeScreen({ mat }) {
         aria-hidden="true"
       />
 
-      <ScreenHeader
-        title="Home"
-        note={
-          mat.live
-            ? undefined
-            : 'Connect the mat or try Demo Mode in Settings to use these controls.'
-        }
-      >
+      <ScreenHeader title="Home">
         <div className="header-pills">
           <button
             className={`pill pill-power ${mat.powerOn ? 'pill-power-off' : 'pill-power-on'}`}
@@ -103,6 +97,12 @@ function HomeScreen({ mat }) {
           <ConnectionPill mat={mat} />
         </div>
       </ScreenHeader>
+
+      {!mat.live && (
+        <InfoBanner id="connect">
+          Connect the mat or try Demo Mode in Settings to use these controls.
+        </InfoBanner>
+      )}
 
       <div className="action-grid">
         {actions.map(action => (
