@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { loadJSON, saveJSON } from '../storage'
 
-const PLAY_KEY = 'pawunit.playTime'
-const GOAL_KEY = 'pawunit.playGoalHours'
+const PLAY_KEY = 'smartmat.playTime'
+const GOAL_KEY = 'smartmat.playGoalHours'
 
 // Local date as YYYY-MM-DD
 function today() {

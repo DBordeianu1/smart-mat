@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadJSON, saveJSON } from '../storage'
 
-const SETTINGS_KEY = 'pawunit.matSettings'
-const WIFI_KEY = 'pawunit.wifiIP'
+const SETTINGS_KEY = 'smartmat.matSettings'
+const WIFI_KEY = 'smartmat.wifiIP'
 
 function clampPercent(value) {
   return Math.min(100, Math.max(0, Math.round(Number(value) || 0)))
 }
 
-// Connection to the Paw Unit mat over WiFi via WebSocket.
+// Connection to the smart mat over WiFi via WebSocket.
 // Commands are sent one per line; the mat reports back lines like "BAT:60".
 export function useMat() {
   const [connected, setConnected] = useState(false)

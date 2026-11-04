@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CloseIcon, InfoIcon } from './Icons.jsx'
 import { loadJSON, saveJSON } from '../storage.js'
 
-const BANNER_KEY = 'pawunit.dismissedBanners'
+const BANNER_KEY = 'smartmat.dismissedBanners'
 
 // Full-width information banner. Each banner id is dismissed on its own
 // and stays dismissed.

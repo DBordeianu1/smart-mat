@@ -545,13 +545,14 @@ button:focus-visible,
   flex: 1;
 }
 
-/* Same effective height as the icon, so the banner keeps its height */
+/* Bigger than the icon, with negative margins so the banner keeps its height */
 .info-banner-close {
   display: grid;
   flex-shrink: 0;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
+  margin: -3px 0;
   padding: 0;
   background: none;
   border: none;
@@ -564,17 +565,15 @@ button:focus-visible,
 }
 
 .info-banner .info-banner-close svg {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   margin: 0;
 }
 
-/* Bigger icon, with negative margins so the banner keeps its height */
 .info-banner svg {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  margin: -4px 0;
+  width: 26px;
+  height: 26px;
 }
 
 .stat-grid {
@@ -816,9 +815,19 @@ button:focus-visible,
   }
 
   .info-banner svg {
-    width: 26px;
-    height: 26px;
-    margin: -3px 0;
+    width: 20px;
+    height: 20px;
+  }
+
+  .info-banner-close {
+    width: 28px;
+    height: 28px;
+    margin: -4px 0;
+  }
+
+  .info-banner .info-banner-close svg {
+    width: 20px;
+    height: 20px;
   }
 
   /* Stat cards switch to a row: label left, value right */
@@ -966,9 +975,19 @@ button:focus-visible,
   }
 
   .info-banner svg {
-    width: 24px;
-    height: 24px;
-    margin: -3px 0;
+    width: 18px;
+    height: 18px;
+  }
+
+  .info-banner-close {
+    width: 26px;
+    height: 26px;
+    margin: -4px 0;
+  }
+
+  .info-banner .info-banner-close svg {
+    width: 18px;
+    height: 18px;
   }
 
   .tab {

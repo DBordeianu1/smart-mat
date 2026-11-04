@@ -1,4 +1,4 @@
-// Paw Unit Mat – ESP32 Prototype 2
+// Smart Mat – ESP32 Prototype 2
 //
 // Pressure sensors:
 //   Sensor 1 -> GPIO 34 -> Yellow
@@ -27,7 +27,7 @@
 // --------------------------------------------------
 
 const char MAT_ID[] = "PU-2048";
-const char HOSTNAME[] = "pawunit";
+const char HOSTNAME[] = "smartmat";
 
 const int LED_PIN = 18;
 
@@ -667,7 +667,7 @@ void setup() {
   Serial.println("Sensor 2: GPIO 35, red");
   Serial.println("Sensor 3: GPIO 33, green");
   Serial.println("Sensor 4: GPIO 32, blue");
-  Serial.println("Paw Unit is ready.");
+  Serial.println("Smart Mat is ready.");
 }
 
 // --------------------------------------------------
