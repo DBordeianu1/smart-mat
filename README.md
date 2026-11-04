@@ -58,8 +58,6 @@ The mat listens on port 8080 and announces itself as `smartmat.local`.
 | GPIO 33 | Pressure pad 3 (green) |
 | GPIO 32 | Pressure pad 4 (blue) |
 
----
-
 ## Getting Started
 ### Firmware config
 
