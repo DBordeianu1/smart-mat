@@ -52,14 +52,9 @@ export function usePlayTime(playing) {
     }
   }, [playing])
 
-  function reset() {
-    setRecord({ date: today(), seconds: 0 })
-  }
-
   return {
     hoursToday: record.date === today() ? record.seconds / 3600 : 0,
     goalHours,
     setGoalHours,
-    reset,
   }
 }

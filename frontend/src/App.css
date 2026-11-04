@@ -203,11 +203,6 @@ button:focus-visible,
   user-select: none;
 }
 
-.hint {
-  color: var(--muted);
-  font-size: 15px;
-}
-
 /* Popup notice above the nav bar that fades out on its own */
 .toast {
   position: fixed;
@@ -468,12 +463,6 @@ button:focus-visible,
 
 .text-button:hover:not(:disabled) {
   color: var(--navy);
-}
-
-.back-button {
-  align-self: flex-start;
-  margin-top: -16px;
-  padding-left: 0;
 }
 
 /* Slider */

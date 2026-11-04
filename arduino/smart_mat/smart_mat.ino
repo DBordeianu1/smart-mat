@@ -9,7 +9,6 @@
 // Outputs:
 //   WS2812 LED strip DIN -> GPIO 18
 //   Speaker amplifier IN -> GPIO 25
-//   Treat mechanism      -> GPIO 27
 //
 // secrets.h must contain:
 //
@@ -26,7 +25,7 @@
 // Configuration
 // --------------------------------------------------
 
-const char MAT_ID[] = "PU-2101";
+const char MAT_MODEL[] = "PU-2101";
 const char HOSTNAME[] = "smartmat";
 
 const int LED_PIN = 18;
@@ -36,7 +35,6 @@ const int LED_PIN = 18;
 const int LED_COUNT = 300;
 
 const int SPEAKER_PIN = 25;
-const int TREAT_PIN = 27;
 
 const int SENSOR_COUNT = 4;
 
@@ -398,23 +396,13 @@ void updatePressureSensors() {
 }
 
 // --------------------------------------------------
-// Treat mechanism
-// --------------------------------------------------
-
-void releaseTreat() {
-  digitalWrite(TREAT_PIN, HIGH);
-  delay(300);
-  digitalWrite(TREAT_PIN, LOW);
-}
-
-// --------------------------------------------------
 // WebSocket status
 // --------------------------------------------------
 
 void reportStatus(uint8_t clientNumber) {
   webSocket.sendTXT(
     clientNumber,
-    String("ID:") + MAT_ID
+    String("MODEL:") + MAT_MODEL
   );
 
   webSocket.sendTXT(
@@ -491,10 +479,6 @@ void handleCommand(
 
     case 'W':
       playSensor2Sound();
-      break;
-
-    case 'T':
-      releaseTreat();
       break;
 
     case 'X':
@@ -637,9 +621,6 @@ void connectToWiFi() {
 void setup() {
   Serial.begin(115200);
   delay(500);
-
-  pinMode(TREAT_PIN, OUTPUT);
-  digitalWrite(TREAT_PIN, LOW);
 
   for (int i = 0; i < SENSOR_COUNT; i++) {
     pinMode(PRESSURE_PINS[i], INPUT);

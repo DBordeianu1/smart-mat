@@ -6,24 +6,19 @@
 
 > Project proposal: [MakerRepo](https://makerepo.com/project_proposals/620.interactive-dog-mat)
 
-This term, we are building a smart mat and companion app for a client, improving communication between dogs and their owners. Accessibility is central to the project, but the design is universal.
+The **Smart Mat PU-2101** is an interactive mat, integrated with a web application, that enables two-way communication between a dog and their owner, who experiences limited mobility and dexterity.
 
-This web application enables two-way communication with a smart mat device via Wi-Fi, allowing real-time control and data reporting.
+Design for Accessibility is the focus of this project. The design of the final prototype and product must therefore: 
+- Be usable comfortably and independently by the client
+- Integrate all sub-systems of the mat (electrical, structural, software) without compromising the requirements
 
----
+The Smart Mat is a direct application of the **Curb Cut Effect**, as it is a universal design. It benefits more than the marginalized group we originally designed and engineered for.
 
-## The App
+## How It Works
 
-Four screens, switched with the tab bar at the bottom. Each one adapts to desktop, phone and small phone widths.
-
-- **Home:** the mat's control plane
-- **Settings:** handles connectivity as well as lights and sounds. Includes a button, which can open the device's settings (Android Chrome only; other browsers show a notice right away)
-- **Analytics:** displays connected devices, battery level and hours played on a given day
-- **Profile:** account information of the user
-
-**Demo Mode** (in Settings) lets you try every screen without the mat.
-
----
+- **Frontend:** A Vite + React web app
+- **Connection:** A WebSocket connection over Wi-Fi links the ESP32 and the web app and allows real-time data transfer
+- **Firmware:** An Arduino sketch (C++) running on the ESP32. It acts on the app's commands and reads the four pressure pads
 
 ## Mat Protocol
 
@@ -35,7 +30,6 @@ The app communicates with the smart mat via Wi-Fi using WebSockets. Each message
 | `C1` / `C0` | Calm mode on / off |
 | `S` | Play a friendly sound |
 | `W` | Play recall whistle |
-| `T` | Release one treat |
 | `X` | All off |
 | `V<0-100>` | Sound volume |
 | `B<0-100>` | Light brightness |
@@ -43,7 +37,7 @@ The app communicates with the smart mat via Wi-Fi using WebSockets. Each message
 
 | Mat -> app | Meaning |
 | --- | --- |
-| `ID:<id>` | Mat ID shown in Settings |
+| `MODEL:<model>` | Mat model (for example `PU-2101`), shown in Settings |
 | `VOL:<0-100>` | Current volume (sent on connect and after a `V` command) |
 | `PLAY:1` / `PLAY:0` | A pressure pad is pressed / none pressed, used for hours played |
 | `PAD<1-4>:1` / `PAD<1-4>:0` | Pressure pad 1 to 4 pressed / released |
@@ -59,7 +53,6 @@ The mat listens on port 8080 and announces itself as `smartmat.local`.
 | --- | --- |
 | GPIO 18 | WS2812 LED strip (data in) |
 | GPIO 25 | Speaker amplifier (in) |
-| GPIO 27 | Treat mechanism |
 | GPIO 34 | Pressure pad 1 (yellow) |
 | GPIO 35 | Pressure pad 2 (red) |
 | GPIO 33 | Pressure pad 3 (green) |
@@ -68,7 +61,17 @@ The mat listens on port 8080 and announces itself as `smartmat.local`.
 ---
 
 ## Getting Started
+### Firmware config
 
+1. Install the [Arduino IDE](https://www.arduino.cc/en/software).
+2. Add ESP32 support: open the **Boards Manager**, search for **esp32** by Espressif Systems, and install it. This also provides the built-in `WiFi` and `ESPmDNS` libraries.
+3. Open the **Library Manager** and install **WebSockets** (by Markus Sattler) and **Adafruit NeoPixel**.
+4. Open `arduino/smart_mat/smart_mat.ino`.
+5. In the same folder, copy `secrets.example.h` to `secrets.h` and enter your Wi-Fi name and password. The ESP32 only works with 2.4 GHz Wi-Fi. `secrets.h` is ignored by git, so your password is never committed.
+6. Select your ESP32 board (a classic ESP32, since the speaker output uses the built-in DAC on GPIO 25) and its port, then click **Upload**.
+7. Open the **Serial Monitor** at 115200 baud. Once the mat connects to Wi-Fi, it prints its IP address and its `smartmat.local` name. You'll need one of them to connect from the app.
+
+### Webapp local setup
 1. Ensure your smart mat is running and connected to the same Wi-Fi network.
 2. Navigate to the frontend subfolder:
    ```
@@ -84,7 +87,8 @@ The mat listens on port 8080 and announces itself as `smartmat.local`.
    ```
    npm run dev
    ```
-5. Open the app at http://localhost:5173/ in your browser, click **Connect via Wi-Fi**, and enter the mat's IP address.
+
+5. Open the app at http://localhost:5173/ in your browser, click **Connect via Wi-Fi**, and enter the mat's IP address or `smartmat.local`.
 
 ---
 

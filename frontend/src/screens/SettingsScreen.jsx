@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import ScreenHeader from '../components/ScreenHeader.jsx'
 import SliderCard from '../components/SliderCard.jsx'
 
+// Shown until the connected mat reports its own model
+const DEFAULT_MODEL = 'PU-2101'
+
 // Personalization area
 function SettingsScreen({ mat }) {
   // Set to a new value each time the notice should pop up (restarts it)
@@ -75,7 +78,7 @@ function ConnectionCard({ mat }) {
 
   if (mat.connected) {
     status = 'Connected'
-    detail = mat.matId ?? 'Waiting for mat ID…'
+    detail = 'Connected over Wi-Fi'
     action = mat.disconnect
     actionLabel = 'Disconnect mat'
   } else if (mat.demoMode) {
@@ -95,7 +98,7 @@ function ConnectionCard({ mat }) {
 
       <div className="connection-text">
         <h2>Smart Mat Connection</h2>
-        <p className="connection-model">PU-2101</p>
+        <p className="connection-model">{mat.matModel ?? DEFAULT_MODEL}</p>
         <p className="connection-id">{detail}</p>
       </div>
 

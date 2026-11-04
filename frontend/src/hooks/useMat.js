@@ -26,7 +26,7 @@ export function useMat() {
   )
 
   // Reported by the mat
-  const [matId, setMatId] = useState(null)
+  const [matModel, setMatModel] = useState(null)
   const [battery, setBattery] = useState(null)
   const [playing, setPlaying] = useState(false)
 
@@ -40,7 +40,7 @@ export function useMat() {
   function resetMatState() {
     setPowerOn(false)
     setConnected(false)
-    setMatId(null)
+    setMatModel(null)
     setBattery(null)
     setPlaying(false)
   }
@@ -62,8 +62,8 @@ export function useMat() {
     const [key, value] = line.split(':')
 
     switch (key) {
-      case 'ID':
-        setMatId(value)
+      case 'MODEL':
+        setMatModel(value)
         break
       case 'BAT':
         setBattery(clampPercent(value))
@@ -221,10 +221,6 @@ export function useMat() {
     send('W')
   }
 
-  function releaseTreat() {
-    send('T')
-  }
-
   // One switch: everything on (lights on, calm off), or everything off
   function togglePower() {
     if (powerOn) {
@@ -264,7 +260,7 @@ export function useMat() {
     powerOn,
     volume,
     brightness,
-    matId,
+    matModel,
     battery,
     playing,
     connect,
@@ -276,7 +272,6 @@ export function useMat() {
     turnCalmOff,
     playSound,
     playWhistle,
-    releaseTreat,
     togglePower,
     setVolume,
     setBrightness,
