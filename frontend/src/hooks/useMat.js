@@ -201,10 +201,6 @@ export function useMat() {
     send('L1')
   }
 
-  function turnLightsOff() {
-    send('L0')
-  }
-
   function turnCalmOn() {
     send('C1')
   }
@@ -219,6 +215,10 @@ export function useMat() {
 
   function playWhistle() {
     send('W')
+  }
+
+  function playPraise() {
+    send('P')
   }
 
   // One switch: everything on (lights on, calm off), or everything off
@@ -267,11 +267,11 @@ export function useMat() {
     disconnect,
     toggleDemoMode,
     turnLightsOn,
-    turnLightsOff,
     turnCalmOn,
     turnCalmOff,
     playSound,
     playWhistle,
+    playPraise,
     togglePower,
     setVolume,
     setBrightness,

@@ -3,7 +3,7 @@ import InfoBanner from '../components/InfoBanner.jsx'
 import ScreenHeader from '../components/ScreenHeader.jsx'
 import {
   CalmIcon,
-  EclipseIcon,
+  PraiseIcon,
   SoundIcon,
   SunIcon,
   WhistleIcon,
@@ -35,12 +35,20 @@ function HomeScreen({ mat }) {
       onClick: mat.turnLightsOn,
     },
     {
-      id: 'calm',
+      id: 'calm-mode',
       label: 'Calm mode',
       icon: <CalmIcon />,
       description: 'Dim lights and audio',
       done: 'Calm mode on',
       onClick: mat.turnCalmOn,
+    },
+    {
+      id: 'calm-mode-off',
+      label: 'Calm mode off',
+      icon: <ZapIcon />,
+      description: 'End calm mode',
+      done: 'Calm mode ended',
+      onClick: mat.turnCalmOff,
     },
     {
       id: 'sound',
@@ -51,20 +59,12 @@ function HomeScreen({ mat }) {
       onClick: mat.playSound,
     },
     {
-      id: 'lights-off',
-      label: 'Lights off',
-      icon: <EclipseIcon />,
-      description: 'Turn mat lights off',
-      done: 'Lights are off',
-      onClick: mat.turnLightsOff,
-    },
-    {
-      id: 'calm-off',
-      label: 'Calm off',
-      icon: <ZapIcon />,
-      description: 'Back to normal',
-      done: 'Back to normal',
-      onClick: mat.turnCalmOff,
+      id: 'praise',
+      label: 'Praise',
+      icon: <PraiseIcon />,
+      description: 'Play a tune',
+      done: 'Good dog!',
+      onClick: mat.playPraise,
     },
     {
       id: 'whistle',

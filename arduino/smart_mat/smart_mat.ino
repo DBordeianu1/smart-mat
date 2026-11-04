@@ -161,6 +161,17 @@ void playSensor4Sound() {
   playToneWithVolume(650, 90);
 }
 
+// Praise: bright four-note rising "good dog" tune (C5, E5, G5, C6).
+void playPraiseSound() {
+  playToneWithVolume(523, 110);
+  delay(30);
+  playToneWithVolume(659, 110);
+  delay(30);
+  playToneWithVolume(784, 110);
+  delay(30);
+  playToneWithVolume(1047, 260);
+}
+
 void playSensorSound(int sensorNumber) {
   switch (sensorNumber) {
     case 1:
@@ -479,6 +490,10 @@ void handleCommand(
 
     case 'W':
       playSensor2Sound();
+      break;
+
+    case 'P':
+      playPraiseSound();
       break;
 
     case 'X':

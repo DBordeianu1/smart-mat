@@ -30,6 +30,7 @@ The app communicates with the smart mat via Wi-Fi using WebSockets. Each message
 | `C1` / `C0` | Calm mode on / off |
 | `S` | Play a friendly sound |
 | `W` | Play recall whistle |
+| `P` | Play the "good dog" tune (four rising notes) |
 | `X` | All off |
 | `V<0-100>` | Sound volume |
 | `B<0-100>` | Light brightness |
