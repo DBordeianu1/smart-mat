@@ -14,7 +14,6 @@
   --green-soft: #dcefe1;
   --info-bg: #dcebf2;
   --info-text: #3b86a8;
-  --error: #b3261e;
 }
 
 /* Keep room for the scroll bar so the layout doesn't shift between screens */
@@ -565,6 +564,27 @@ button:focus-visible,
   height: 26px;
 }
 
+/* Yellow warning version of the banner */
+.info-banner-warning {
+  background-color: var(--yellow-soft);
+  color: #765d17;
+}
+
+.info-banner-warning .info-banner-close:hover {
+  background-color: rgb(118 93 23 / 0.15);
+}
+
+/* Connection problems: pinned to the top so they never move the page */
+.error-banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 3;
+  width: min(952px, calc(100% - 32px));
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  transform: translateX(-50%);
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -617,15 +637,6 @@ button:focus-visible,
   border-radius: 999px;
   background-color: var(--yellow);
   transition: width 0.3s;
-}
-
-/* Error Message */
-
-.error-message {
-  margin-bottom: 16px;
-  color: var(--error);
-  text-align: center;
-  font-size: 15px;
 }
 
 /* Tab Bar */

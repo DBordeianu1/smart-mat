@@ -65,6 +65,9 @@ export function useMat() {
       case 'MODEL':
         setMatModel(value)
         break
+      case 'POWER':
+        setPowerOn(value === '1')
+        break
       case 'BAT':
         setBattery(clampPercent(value))
         break
@@ -121,8 +124,8 @@ export function useMat() {
       wsRef.current = new WebSocket(wsURL)
 
       wsRef.current.onopen = () => {
-        // Start from a known state, then ask the mat to report itself
-        send('X')
+        // Send the saved settings, then ask the mat to report itself
+        // (including whether it is on)
         send(`V${volume}`)
         send(`B${brightness}`)
         send('?')
@@ -197,8 +200,8 @@ export function useMat() {
 
   // Mat actions
 
-  function turnLightsOn() {
-    send('L1')
+  function flashLights() {
+    send('F')
   }
 
   function turnCalmOn() {
@@ -221,16 +224,16 @@ export function useMat() {
     send('P')
   }
 
-  // One switch: everything on (lights on, calm off), or everything off
+  // The mat keeps its own on/off state and reports it back as POWER. While
+  // it is off it ignores buttons and pads. Turning it on doesn't light anything
+  // (the lights are off by default); turning it off switches everything off.
   function togglePower() {
-    if (powerOn) {
-      send('X')
-    } else {
-      send('C0')
-      send('L1')
-    }
-
+    send(powerOn ? 'O0' : 'O1')
     setPowerOn(!powerOn)
+  }
+
+  function dismissError() {
+    setError('')
   }
 
   function setVolume(value) {
@@ -257,6 +260,7 @@ export function useMat() {
     demoMode,
     live: connected || demoMode,
     error,
+    dismissError,
     powerOn,
     volume,
     brightness,
@@ -266,7 +270,7 @@ export function useMat() {
     connect,
     disconnect,
     toggleDemoMode,
-    turnLightsOn,
+    flashLights,
     turnCalmOn,
     turnCalmOff,
     playSound,

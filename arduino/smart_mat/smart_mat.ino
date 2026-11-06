@@ -51,6 +51,11 @@ const int PRESSURE_OFF_THRESHOLD = 600;
 
 const unsigned long PRESSURE_DEBOUNCE_MS = 80;
 
+// How long the strip stays lit for a flash with no sound (the Lights button and
+// switching calm mode), to match a normal tap on a pressure pad. Flashes with a
+// sound last as long as the sound.
+const unsigned long FLASH_MS = 800;
+
 Adafruit_NeoPixel strip(
   LED_COUNT,
   LED_PIN,
@@ -65,6 +70,9 @@ WebSocketsServer webSocket(8080);
 
 bool lightsOn = false;
 bool calmOn = false;
+
+// The mat starts off. While off it ignores action commands and the pressure pads.
+bool matOn = false;
 
 int brightness = 80;
 
@@ -96,6 +104,15 @@ unsigned long sensorCandidateSince[SENSOR_COUNT] = {
 // 1–4 = active pressure sensor
 int activeSensor = 0;
 
+// Calm mode makes everything gentler: lights dimmer and sounds quieter.
+// This is the share of the normal brightness and volume that calm mode uses.
+const int CALM_LEVEL_PERCENT = 20;
+
+// Scales a brightness or volume (0-100) down while calm mode is on.
+int withCalm(int level) {
+  return calmOn ? (level * CALM_LEVEL_PERCENT) / 100 : level;
+}
+
 // --------------------------------------------------
 // Speaker
 // --------------------------------------------------
@@ -112,7 +129,7 @@ void playToneWithVolume(int frequency, int durationMs) {
     return;
   }
 
-  int outputLevel = map(volume, 0, 100, 0, 255);
+  int outputLevel = map(withCalm(volume), 0, 100, 0, 255);
   outputLevel = constrain(outputLevel, 0, 255);
 
   unsigned long halfPeriodUs = 500000UL / frequency;
@@ -172,6 +189,22 @@ void playPraiseSound() {
   playToneWithVolume(1047, 260);
 }
 
+// Whistle: a rising slide, a fast trill, then a falling tail, like a dog whistle.
+void playWhistleSound() {
+  for (int frequency = 1800; frequency <= 3000; frequency += 100) {
+    playToneWithVolume(frequency, 15);
+  }
+
+  for (int i = 0; i < 12; i++) {
+    playToneWithVolume(3000, 20);
+    playToneWithVolume(2800, 20);
+  }
+
+  for (int frequency = 3000; frequency >= 2200; frequency -= 100) {
+    playToneWithVolume(frequency, 15);
+  }
+}
+
 void playSensorSound(int sensorNumber) {
   switch (sensorNumber) {
     case 1:
@@ -201,14 +234,16 @@ void setStripColor(
   uint8_t green,
   uint8_t blue
 ) {
+  int level = withCalm(brightness);
+
   int adjustedRed =
-    (red * brightness) / 100;
+    (red * level) / 100;
 
   int adjustedGreen =
-    (green * brightness) / 100;
+    (green * level) / 100;
 
   int adjustedBlue =
-    (blue * brightness) / 100;
+    (blue * level) / 100;
 
   uint32_t color = strip.Color(
     adjustedRed,
@@ -228,22 +263,51 @@ void turnLightsOff() {
   strip.show();
 }
 
+// Calm mode's look: a soft blue.
+void showCalmColor() {
+  setStripColor(15, 55, 170);
+}
+
+// The strip is off unless lights are switched on (or flashing).
+// Calm mode doesn't turn lights on. It only changes how they look
+// when they are on: soft blue instead of bright warm yellow.
 void showNormalLights() {
-  if (!lightsOn && !calmOn) {
+  if (!lightsOn) {
     turnLightsOff();
     return;
   }
 
   if (calmOn) {
-    // Soft warm light.
-    setStripColor(80, 45, 5);
+    showCalmColor();
   } else {
     // Normal warm-yellow light.
     setStripColor(255, 170, 25);
   }
 }
 
+// Each pressure pad has its own colour. In calm mode every pad shows its own
+// soft shade of blue instead.
 void showSensorColor(int sensorNumber) {
+  if (calmOn) {
+    switch (sensorNumber) {
+      case 1:
+        setStripColor(70, 150, 230);
+        return;
+
+      case 2:
+        setStripColor(10, 20, 110);
+        return;
+
+      case 3:
+        setStripColor(0, 110, 190);
+        return;
+
+      case 4:
+        setStripColor(60, 70, 220);
+        return;
+    }
+  }
+
   switch (sensorNumber) {
     case 1:
       // Sensor 1: yellow.
@@ -269,6 +333,56 @@ void showSensorColor(int sensorNumber) {
       showNormalLights();
       break;
   }
+}
+
+// Lights the strip in the given colour, then puts it back how it was. With an
+// `action` (a sound) the lights last exactly as long as the action. Without one,
+// they last FLASH_MS. In calm mode it uses the calm colour instead, a shade of
+// blue that is different for each button.
+// While a pressure pad is lighting the strip, it only runs `action`.
+void flashLightsDuring(
+  void (*action)(),
+  uint8_t red,
+  uint8_t green,
+  uint8_t blue,
+  uint8_t calmRed,
+  uint8_t calmGreen,
+  uint8_t calmBlue
+) {
+  if (activeSensor != 0) {
+    if (action != nullptr) {
+      action();
+    }
+
+    return;
+  }
+
+  bool lightsWereOn = lightsOn;
+
+  lightsOn = true;
+
+  if (calmOn) {
+    setStripColor(calmRed, calmGreen, calmBlue);
+  } else {
+    setStripColor(red, green, blue);
+  }
+
+  if (action != nullptr) {
+    // The lights stay on exactly as long as the sound.
+    action();
+  } else {
+    // No sound: hold the flash for FLASH_MS.
+    delay(FLASH_MS);
+  }
+
+  lightsOn = lightsWereOn;
+  showNormalLights();
+}
+
+// The Lights button, and the flash when calm mode is switched: warm yellow,
+// or soft royal blue in calm mode.
+void flashLights() {
+  flashLightsDuring(nullptr, 255, 170, 25, 15, 55, 170);
 }
 
 // --------------------------------------------------
@@ -410,10 +524,42 @@ void updatePressureSensors() {
 // WebSocket status
 // --------------------------------------------------
 
+// Turns the mat on or off and tells every connected app.
+// Turning it off also switches everything off and forgets pad presses,
+// so a pad held while turning back on counts as a new press.
+void setMatPower(bool on) {
+  matOn = on;
+
+  if (!on) {
+    lightsOn = false;
+    calmOn = false;
+    stopSpeaker();
+
+    activeSensor = 0;
+
+    for (int i = 0; i < SENSOR_COUNT; i++) {
+      sensorPressed[i] = false;
+      sensorCandidate[i] = false;
+    }
+
+    turnLightsOff();
+    reportPressureState();
+  }
+
+  webSocket.broadcastTXT(
+    String("POWER:") + String(matOn ? 1 : 0)
+  );
+}
+
 void reportStatus(uint8_t clientNumber) {
   webSocket.sendTXT(
     clientNumber,
     String("MODEL:") + MAT_MODEL
+  );
+
+  webSocket.sendTXT(
+    clientNumber,
+    String("POWER:") + String(matOn ? 1 : 0)
   );
 
   webSocket.sendTXT(
@@ -463,7 +609,27 @@ void handleCommand(
 
   char commandType = command.charAt(0);
 
+  // While the mat is off, only these commands are accepted.
+  bool allowedWhileOff =
+    commandType == 'O' ||
+    commandType == 'X' ||
+    commandType == 'V' ||
+    commandType == 'B' ||
+    commandType == '?';
+
+  if (!matOn && !allowedWhileOff) {
+    Serial.println("Mat is off, ignoring command.");
+    return;
+  }
+
   switch (commandType) {
+    case 'O':
+      setMatPower(
+        command.length() > 1 &&
+        command.charAt(1) == '1'
+      );
+      break;
+
     case 'L':
       lightsOn =
         command.length() > 1 &&
@@ -479,21 +645,33 @@ void handleCommand(
         command.length() > 1 &&
         command.charAt(1) == '1';
 
-      if (activeSensor == 0) {
-        showNormalLights();
+      if (activeSensor != 0) {
+        // A pad is lighting the strip: recolour it for the new mode.
+        showSensorColor(activeSensor);
+      } else {
+        // Flash the lights in the new look (soft blue, or normal yellow), so
+        // the user can see which mode the mat is in now.
+        flashLights();
       }
       break;
 
     case 'S':
-      playSensor1Sound();
+      // Sound: green, or light sky blue in calm mode.
+      flashLightsDuring(playSensor1Sound, 0, 255, 40, 70, 150, 230);
       break;
 
     case 'W':
-      playSensor2Sound();
+      // Whistle: red, or deep navy blue in calm mode.
+      flashLightsDuring(playWhistleSound, 255, 0, 0, 10, 20, 110);
       break;
 
     case 'P':
-      playPraiseSound();
+      // Praise: purple, or bright indigo blue in calm mode.
+      flashLightsDuring(playPraiseSound, 160, 40, 255, 60, 70, 220);
+      break;
+
+    case 'F':
+      flashLights();
       break;
 
     case 'X':
@@ -672,7 +850,10 @@ void setup() {
 
 void loop() {
   webSocket.loop();
-  updatePressureSensors();
+
+  if (matOn) {
+    updatePressureSensors();
+  }
 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println(

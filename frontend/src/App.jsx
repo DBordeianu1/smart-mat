@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import ErrorBanner from './components/ErrorBanner.jsx'
 import TabBar from './components/TabBar.jsx'
 import { useMat } from './hooks/useMat.js'
 import { usePlayTime } from './hooks/usePlayTime.js'
@@ -36,13 +37,9 @@ function App() {
         {tab === 'settings' && <SettingsScreen mat={mat} />}
         {tab === 'analytics' && <AnalyticsScreen mat={mat} play={play} />}
         {tab === 'profile' && <ProfileScreen play={play} />}
-
-        {mat.error && (
-          <p className="error-message" role="alert">
-            {mat.error}
-          </p>
-        )}
       </main>
+
+      <ErrorBanner message={mat.error} onDismiss={mat.dismissError} />
 
       <TabBar current={tab} onChange={setTab} />
 

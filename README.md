@@ -27,10 +27,12 @@ The app communicates with the smart mat via Wi-Fi using WebSockets. Each message
 | App -> mat | Meaning |
 | --- | --- |
 | `L1` / `L0` | Lights on / off |
-| `C1` / `C0` | Calm mode on / off |
-| `S` | Play a friendly sound |
-| `W` | Play recall whistle |
-| `P` | Play the "good dog" tune (four rising notes) |
+| `C1` / `C0` | Calm mode on / off. In calm mode all lights are dimmer and all sounds are quieter (20% of the normal level), and every flash and every pressure pad lights up in a soft shade of blue instead of its normal colour. It does not turn lights on, but the lights flash briefly in the new look so you can see the change |
+| `S` | Play a friendly sound, with the lights flashing green for as long as the sound lasts |
+| `W` | Play a whistle sound, with the lights flashing red for as long as the sound lasts |
+| `P` | Play the "good dog" tune (four rising notes), with the lights flashing purple for as long as the tune lasts |
+| `F` | Flash the lights for a moment (warm yellow), then restore them |
+| `O1` / `O0` | Mat on / off. While off, the mat ignores `L`, `C`, `S`, `W`, `P` and `F`, and the pressure pads do nothing. It starts off |
 | `X` | All off |
 | `V<0-100>` | Sound volume |
 | `B<0-100>` | Light brightness |
@@ -39,6 +41,7 @@ The app communicates with the smart mat via Wi-Fi using WebSockets. Each message
 | Mat -> app | Meaning |
 | --- | --- |
 | `MODEL:<model>` | Mat model (for example `PU-2101`), shown in Settings |
+| `POWER:1` / `POWER:0` | Whether the mat is on (sent on connect and whenever it changes) |
 | `VOL:<0-100>` | Current volume (sent on connect and after a `V` command) |
 | `PLAY:1` / `PLAY:0` | A pressure pad is pressed / none pressed, used for hours played |
 | `PAD<1-4>:1` / `PAD<1-4>:0` | Pressure pad 1 to 4 pressed / released |
@@ -73,19 +76,19 @@ The mat listens on port 8080 and announces itself as `smartmat.local`.
 ### Webapp local setup
 1. Ensure your smart mat is running and connected to the same Wi-Fi network.
 2. Navigate to the frontend subfolder:
-   ```
-   cd frontend
-   ```
+```
+cd frontend
+```
 
 3. (Only do this once) Install dependencies and start the app:
-   ```
-   npm install
-   ```
+```
+npm install
+```
 
 4. Run the application:
-   ```
-   npm run dev
-   ```
+```
+npm run dev
+```
 
 5. Open the app at http://localhost:5173/ in your browser, click **Connect via Wi-Fi**, and enter the mat's IP address or `smartmat.local`.
 

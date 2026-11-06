@@ -1,35 +1,28 @@
-import { useEffect, useState } from 'react'
 import ScreenHeader from '../components/ScreenHeader.jsx'
 import SliderCard from '../components/SliderCard.jsx'
+import Toast from '../components/Toast.jsx'
+import { useToast } from '../hooks/useToast.js'
 
 // Shown until the connected mat reports its own model
 const DEFAULT_MODEL = 'PU-2101'
 
 // Personalization area
 function SettingsScreen({ mat }) {
-  // Set to a new value each time the notice should pop up (restarts it)
-  const [blockedAt, setBlockedAt] = useState(null)
-
-  // The "blocked" notice is a popup that goes away on its own
-  useEffect(() => {
-    if (blockedAt === null) return
-    const timer = setTimeout(() => setBlockedAt(null), 4000)
-    return () => clearTimeout(timer)
-  }, [blockedAt])
+  const [blockedAt, showBlocked] = useToast()
 
   // Only Android Chrome can open system settings from a web page, so on iPhone
   // and desktop browsers the notice shows right away. On Android, try the
   // deep link and show the notice if the page is still visible afterwards.
   function openDeviceSettings() {
     if (!/Android/i.test(navigator.userAgent)) {
-      setBlockedAt(Date.now())
+      showBlocked()
       return
     }
 
     window.location.href = 'intent://settings#Intent;action=android.settings.SETTINGS;end'
 
     setTimeout(() => {
-      if (document.visibilityState === 'visible') setBlockedAt(Date.now())
+      if (document.visibilityState === 'visible') showBlocked()
     }, 1200)
   }
 
@@ -61,11 +54,9 @@ function SettingsScreen({ mat }) {
         </button>
       </div>
 
-      {blockedAt !== null && (
-        <p key={blockedAt} className="toast" role="status">
-          Your browser blocked this. Open your device's Settings app manually.
-        </p>
-      )}
+      <Toast shownAt={blockedAt}>
+        Your browser blocked this. Open your device's Settings app manually.
+      </Toast>
     </section>
   )
 }

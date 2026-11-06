@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import InfoBanner from '../components/InfoBanner.jsx'
 import ScreenHeader from '../components/ScreenHeader.jsx'
+import Toast from '../components/Toast.jsx'
 import {
   CalmIcon,
   PraiseIcon,
@@ -9,16 +10,24 @@ import {
   WhistleIcon,
   ZapIcon,
 } from '../components/Icons.jsx'
+import { useToast } from '../hooks/useToast.js'
 
 // The mat's control plane
 function HomeScreen({ mat }) {
   const [sent, setSent] = useState(null)
   const sentTimer = useRef(null)
+  const [offAt, showOff] = useToast()
 
   useEffect(() => () => clearTimeout(sentTimer.current), [])
 
-  // Briefly confirm one-shot actions on their card
+  // Briefly confirm one-shot actions on their card. While the mat is off,
+  // nothing is sent and a popup says to turn it on first.
   function runOnce(id, action) {
+    if (!mat.powerOn) {
+      showOff()
+      return
+    }
+
     action()
     setSent(id)
     clearTimeout(sentTimer.current)
@@ -30,15 +39,15 @@ function HomeScreen({ mat }) {
       id: 'lights',
       label: 'Lights',
       icon: <SunIcon />,
-      description: 'Turn mat lights on',
-      done: 'Lights are on',
-      onClick: mat.turnLightsOn,
+      description: 'Flash the mat lights',
+      done: 'Lights flashed',
+      onClick: mat.flashLights,
     },
     {
       id: 'calm-mode',
       label: 'Calm mode',
       icon: <CalmIcon />,
-      description: 'Dim lights and audio',
+      description: 'Dimmer lights, quieter sounds',
       done: 'Calm mode on',
       onClick: mat.turnCalmOn,
     },
@@ -122,6 +131,8 @@ function HomeScreen({ mat }) {
           </button>
         ))}
       </div>
+
+      <Toast shownAt={offAt}>The mat is off, turn it on</Toast>
     </section>
   )
 }
