@@ -28,7 +28,7 @@
 const char MAT_MODEL[] = "PU-2101";
 const char HOSTNAME[] = "smartmat";
 
-const int LED_PIN = 18;
+const int LED_PIN = 26;
 
 // Keep this equal to the number that currently lights
 // your entire LED strip.
